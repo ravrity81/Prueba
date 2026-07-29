@@ -1918,5 +1918,36 @@
             }
         }
     </script>
+</div> 
+
+<!-- >>> PEGA EL CÓDIGO AQUÍ (Líneas finales de tu archivo) <<< -->
+<script src="https://jsdelivr.net"></script>
+<script>
+    const SUPABASE_URL = "https://supabase.co";
+    const SUPABASE_KEY = "sb_publishable_wfwqA12Gzc1W1Gs2PYdSjg_agP2i_bY";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const canalContable = supabase.channel('modulo-cxp');
+
+    canalContable
+        .on('broadcast', { event: 'nuevo-registro' }, (respuesta) => {
+            alert(`Notificación: Nuevo documento (${respuesta.payload.tipo}) - Proveedor: ${respuesta.payload.proveedor}.`);
+            if (typeof actualizarDashboard === "function") actualizarDashboard();
+        })
+        .subscribe();
+
+    const botonGuardarRegistro = document.getElementById('btnGuardarRegistro') || document.querySelector('button');
+    if (botonGuardarRegistro) {
+        botonGuardarRegistro.addEventListener('click', () => {
+            canalContable.send({
+                type: 'broadcast',
+                event: 'nuevo-registro',
+                payload: { tipo: "Factura", proveedor: "Proveedor detectado", monto: "0" }
+            });
+        });
+    }
+</script>
+
 </body>
 </html>
+
+
