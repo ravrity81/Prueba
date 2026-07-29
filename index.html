@@ -1,0 +1,1922 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Control Contable - Cuentas por Pagar</title>
+    <style>
+        :root {
+            /* Modo Claro (Default) */
+            --bg-main: #f1f5f9;
+            --sidebar-bg: #4a0410; /* Rojo Carmesí por defecto */
+            --sidebar-active: rgba(255, 255, 255, 0.2);
+            --sidebar-hover: rgba(255, 255, 255, 0.1);
+            --sidebar-text: #f1f5f9;
+            --card-bg: #ffffff;
+            --card-border: #cbd5e1;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #cbd5e1;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --danger: #ef4444;
+            --badge-bg: #e2e8f0;
+        }
+
+        /* Variables para Modo Oscuro */
+        body.dark-mode {
+            --bg-main: #0b0f17;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --card-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --badge-bg: #0f172a;
+        }
+
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; 
+            background-color: var(--bg-main); 
+            color: var(--text-primary);
+            display: flex; 
+            min-height: 100vh; 
+            transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .app-contenedor {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+        .app-contenedor.oculto {
+            display: none !important;
+        }
+
+        #pantallaHome {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 100vh;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+        #pantallaHome.oculto {
+            display: none !important;
+        }
+
+        .home-header-absolute {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+        }
+
+        .home-center-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 24px;
+        }
+
+        .home-titulo {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        .home-subtitulo {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .portal-card {
+            width: 240px;
+            height: 200px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .portal-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: var(--primary);
+            opacity: 0.9;
+        }
+        .portal-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.12);
+            border-color: var(--primary);
+        }
+        .portal-icono {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: var(--badge-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+        .portal-icono svg { width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .portal-titulo { font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0; }
+        .portal-accion-txt {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .barra-pestanas { 
+            width: 280px; 
+            background-color: var(--sidebar-bg); 
+            padding: 24px 16px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            flex-shrink: 0; 
+            color: var(--sidebar-text);
+            transition: background-color 0.4s ease, transform 0.3s ease;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        .btn-menu-movil {
+            display: none;
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 101;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: var(--card-shadow);
+        }
+        .btn-menu-movil svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+        .sidebar-titulo {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.6);
+            margin: 0 0 8px 4px;
+        }
+
+        .btn-volver-home {
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+            text-align: left;
+            width: 100%;
+        }
+        .btn-volver-home:hover { background: rgba(255, 255, 255, 0.2); }
+        .btn-volver-home svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+        .sidebar-menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-pestana { 
+            padding: 12px 14px; 
+            font-weight: 500; 
+            font-size: 13px;
+            cursor: pointer; 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            background-color: rgba(255, 255, 255, 0.04); 
+            color: rgba(255, 255, 255, 0.8); 
+            border-radius: 12px; 
+            text-align: left; 
+            width: 100%; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+        .btn-pestana:hover {
+            background-color: var(--sidebar-hover);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(2px);
+        }
+        .btn-pestana.activa { 
+            background-color: var(--sidebar-active); 
+            color: #ffffff; 
+            font-weight: 600;
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .btn-pestana svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+
+        .selector-color-sidebar {
+            margin-top: auto;
+            padding: 12px 4px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .paleta-colores {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .circulo-color {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .circulo-color:hover { transform: scale(1.25); }
+        
+        .input-color-custom {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            cursor: pointer;
+            overflow: hidden;
+            background: none;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s;
+        }
+        .input-color-custom:hover { 
+            transform: scale(1.25); 
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+        .input-color-custom::-webkit-color-swatch-wrapper { padding: 0; }
+        .input-color-custom::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+        .contenedor-principal { flex: 1; padding: 36px 40px; overflow-y: auto; max-width: 1100px; }
+        
+        .encabezado-superior {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .titulo-pagina { font-size: 24px; font-weight: 700; margin: 0; color: var(--text-primary); }
+
+        .btn-modo-oscuro {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-modo-oscuro:hover { border-color: var(--primary); transform: translateY(-2px); }
+
+        .pantalla { display: none; opacity: 0; transform: translateY(8px); }
+        .pantalla.activa { 
+            display: block; 
+            animation: fadeInSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
+
+        @keyframes fadeInSlide {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s;
+        }
+        .card:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+        .card-header { margin-top: 0; margin-bottom: 18px; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--primary);
+            opacity: 0.8;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+        }
+        .stat-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 26px; font-weight: 700; color: var(--text-primary); }
+        .stat-desc { font-size: 12px; color: var(--text-secondary); }
+
+        .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+        .campo { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary); }
+        
+        input, select, textarea { 
+            padding: 10px 12px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            width: 100%; 
+            font-size: 14px; 
+            color: var(--text-primary);
+            background-color: var(--card-bg);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        .input-grupo { display: flex; gap: 8px; }
+        .input-grupo select { width: 95px; flex-shrink: 0; }
+        
+        button.accion { 
+            padding: 10px 18px; 
+            background-color: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 14px;
+            transition: background-color 0.2s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        button.accion:hover { background-color: var(--primary-hover); transform: translateY(-2px); }
+        button.accion:active { transform: translateY(0); }
+        
+        button.secundario {
+            padding: 10px 18px;
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        button.secundario:hover { background-color: var(--bg-main); transform: translateY(-1px); }
+
+        button.borrar-todo { 
+            padding: 8px 14px; 
+            background-color: var(--card-bg); 
+            color: var(--text-secondary); 
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 12px; 
+            font-weight: 600;
+            margin-top: 10px; 
+            transition: all 0.2s;
+        }
+        button.borrar-todo:hover { border-color: var(--danger); color: var(--danger); }
+        
+        .contenedor-busqueda { margin-bottom: 16px; }
+        .input-busqueda { width: 100%; max-width: 400px; }
+
+        .fila-factura { 
+            padding: 18px; 
+            border-radius: 12px; 
+            margin-bottom: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 14px; 
+            font-size: 13px; 
+            border: 1px solid var(--card-border);
+            background-color: var(--card-bg);
+            box-shadow: var(--card-shadow);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s, border-color 0.25s;
+        }
+        .fila-factura:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12); 
+        }
+        .fila-encabezado { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; flex-wrap: wrap; gap: 10px; }
+        
+        .fila-Pendiente { border-left: 5px solid #f59e0b; }
+        .fila-Pagado { border-left: 5px solid #10b981; }
+        .fila-Tesoreria { border-left: 5px solid #6366f1; }
+        .fila-Cotizacion { border-left: 5px solid #8b5cf6; }
+
+        .desglose-impuestos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            background-color: var(--badge-bg);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .item-desglose { display: flex; flex-direction: column; gap: 2px; }
+        .item-desglose span { color: var(--text-secondary); font-size: 11px; }
+        .item-desglose strong { font-weight: 700; }
+        .monto-suma { color: #10b981; }
+        .monto-resta { color: #ef4444; }
+
+        .controles-fila { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .btn-eliminar-unica { 
+            background-color: transparent; 
+            color: var(--danger); 
+            border: 1px solid var(--border-color); 
+            padding: 6px 10px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .btn-eliminar-unica:hover { background-color: rgba(239, 68, 68, 0.1); transform: scale(1.03); }
+        
+        .badge-estado { 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 11px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            border: none; 
+            min-width: 110px; 
+            text-align: center; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em;
+            transition: transform 0.15s ease, opacity 0.15s;
+        }
+        .badge-estado:hover { transform: scale(1.05); opacity: 0.9; }
+        .estado-Pendiente { background-color: #fef3c7; color: #b45309; }
+        .estado-Pagado { background-color: #d1fae5; color: #047857; }
+        .estado-Tesoreria { background-color: #e0e7ff; color: #4338ca; }
+        .estado-Cotizacion { background-color: #ede9fe; color: #6d28d9; }
+
+        .inputs-factura-extra {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 600px) {
+            .inputs-factura-extra { grid-template-columns: 1fr; }
+        }
+
+        .input-nota-lista, .input-oc-lista { 
+            width: 100%; 
+            padding: 8px 12px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 6px; 
+            font-size: 12px; 
+            background: var(--bg-main); 
+            color: var(--text-primary);
+        }
+
+        /* Estilos específicos para Enlace Compacto Cotización - Factura */
+        .tarjeta-enlace-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 12px;
+            align-items: center;
+        }
+        .bloque-enlace-item {
+            background: var(--badge-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+        }
+        .separador-enlace {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 16px;
+        }
+        @media (max-width: 768px) {
+            .tarjeta-enlace-grid {
+                grid-template-columns: 1fr;
+            }
+            .separador-enlace {
+                padding: 4px 0;
+            }
+        }
+
+        .tabla-proveedores-contenedor {
+            width: 100%;
+            overflow-x: auto;
+        }
+        .tabla-proveedores {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 500px;
+        }
+        .tabla-proveedores th, .tabla-proveedores td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tabla-proveedores th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .enlace-proveedor {
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+        .enlace-proveedor:hover { text-decoration: underline; opacity: 0.85; }
+
+        .btn-regresar {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            background: none;
+            border: none;
+            padding: 0;
+            transition: color 0.15s, transform 0.15s;
+        }
+        .btn-regresar:hover { color: var(--primary); transform: translateX(-3px); }
+
+        @media (max-width: 768px) {
+            .app-contenedor {
+                flex-direction: column;
+            }
+            .btn-menu-movil {
+                display: flex;
+            }
+            .barra-pestanas {
+                position: fixed;
+                top: 0;
+                left: -290px;
+                height: 100vh;
+                width: 280px;
+                transition: transform 0.3s ease-in-out;
+                z-index: 1000;
+            }
+            .barra-pestanas.abierta {
+                transform: translateX(290px);
+            }
+            .contenedor-principal {
+                padding: 14px 10px;
+                margin-top: 55px;
+                max-width: 100%;
+                overflow-x: hidden;
+            }
+            .card {
+                padding: 14px;
+                border-radius: 10px;
+                margin-bottom: 14px;
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .grid-form {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .encabezado-superior {
+                margin-bottom: 16px;
+            }
+            .titulo-pagina {
+                font-size: 20px;
+            }
+            .btn-modo-oscuro {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            .fila-encabezado {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .controles-fila {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .badge-estado {
+                flex: 1;
+                text-align: center;
+                padding: 8px 10px;
+            }
+            .desglose-impuestos {
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+            .input-busqueda {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== PANTALLA PRINCIPAL: SELECCIÓN REDUCIDA (SOLO CXP) ==================== -->
+    <div id="pantallaHome">
+        <div class="home-header-absolute">
+            <button class="btn-modo-oscuro" onclick="alternarModoOscuro()" aria-label="Cambiar modo de pantalla">
+                <span id="iconoTemaHome">🌙</span> <span id="textoTemaHome">Modo Oscuro</span>
+            </button>
+        </div>
+
+        <div class="home-center-content">
+            <div>
+                <h1 class="home-titulo">Sistema de Control Contable</h1>
+                <p class="home-subtitulo">Seleccione el departamento para ingresar</p>
+            </div>
+
+            <div class="portal-card" onclick="entrarDepartamento('CxP')">
+                <div class="portal-icono">
+                    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </div>
+                <h3 class="portal-titulo">Cuentas por Pagar (CxP)</h3>
+                <span class="portal-accion-txt">Ingresar →</span>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== CONTENEDOR DE LA APLICACIÓN (DENTRO DE CXP) ==================== -->
+    <div id="appContenedor" class="app-contenedor oculto">
+
+        <button class="btn-menu-movil" onclick="alternarMenuMovil()" aria-label="Abrir Menú">
+            <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+
+        <nav class="barra-pestanas" id="barraPestanas" aria-label="Navegación Principal">
+            
+            <button class="btn-volver-home" onclick="regresarAlHome()">
+                <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Volver al Menú Principal
+            </button>
+
+            <div class="sidebar-titulo" id="sidebarTituloDepto">Cuentas por Pagar</div>
+            
+            <div class="sidebar-menu-container">
+                <button id="btnTabDash" class="btn-pestana activa" onclick="cambiarPestana('pantallaDash')">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    Dashboard CxP
+                </button>
+                <button id="btnTabCalc" class="btn-pestana" onclick="cambiarPestana('pantallaCalc')">
+                    <svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="12" y1="10" x2="14" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="12" y1="14" x2="14" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="12" y1="18" x2="16" y2="18"/></svg>
+                    Calculadora Facturas
+                </button>
+                <button id="btnTabLista" class="btn-pestana" onclick="cambiarPestana('pantallaLista')">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    Historial Facturas
+                </button>
+                <button id="btnTabCot" class="btn-pestana" onclick="cambiarPestana('pantallaCot')">
+                    <svg viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><polyline points="10 2 10 10 13 8 16 10 16 2"/></svg>
+                    Historial Cotizaciones
+                </button>
+                <button id="btnTabEnlace" class="btn-pestana" onclick="cambiarPestana('pantallaEnlace')">
+                    <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    Enlazar Cotización-Factura
+                </button>
+                <button id="btnTabProv" class="btn-pestana" onclick="cambiarPestana('pantallaProv')">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Proveedores
+                </button>
+            </div>
+
+            <div class="selector-color-sidebar">
+                <div class="sidebar-titulo" style="margin: 0 0 4px 0;">Tema y Color</div>
+                <div class="paleta-colores">
+                    <div class="circulo-color" style="background: #4a0410;" title="Rojo Carmesí" onclick="cambiarColorSidebar('#4a0410')"></div>
+                    <div class="circulo-color" style="background: #111827;" title="Sombra Nocturna" onclick="cambiarColorSidebar('#111827')"></div>
+                    <div class="circulo-color" style="background: #374151;" title="Gris Niebla" onclick="cambiarColorSidebar('#374151')"></div>
+                    <div class="circulo-color" style="background: #2e1065;" title="Púrpura Oscuro" onclick="cambiarColorSidebar('#2e1065')"></div>
+                    <div class="circulo-color" style="background: #064e3b;" title="Verde Esmeralda" onclick="cambiarColorSidebar('#064e3b')"></div>
+                    
+                    <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.2); margin: 0 2px;"></div>
+                    
+                    <input type="color" class="input-color-custom" id="colorPickerSidebar" title="Elige tu propio color" onchange="cambiarColorSidebar(this.value)">
+                </div>
+            </div>
+        </nav>
+
+        <main class="contenedor-principal">
+            
+            <header class="encabezado-superior">
+                <h1 class="titulo-pagina" id="tituloSeccion">Dashboard General</h1>
+                <button class="btn-modo-oscuro" onclick="alternarModoOscuro()" aria-label="Cambiar modo de pantalla">
+                    <span id="iconoTema">🌙</span> <span id="textoTema">Modo Oscuro</span>
+                </button>
+            </header>
+
+            <!-- PANTALLA DASHBOARD -->
+            <section id="pantallaDash" class="pantalla">
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Total Facturas (CxP)</span>
+                        <span class="stat-value" id="statTotalFacturas">0</span>
+                        <span class="stat-desc">Registros en el sistema</span>
+                    </div>
+                    <div class="stat-card" style="--primary: #f59e0b;">
+                        <span class="stat-label">Facturas Pendientes</span>
+                        <span class="stat-value" id="statPendientes">0</span>
+                        <span class="stat-desc">Requieren atención</span>
+                    </div>
+                    <div class="stat-card" style="--primary: #8b5cf6;">
+                        <span class="stat-label">Cotizaciones Guardadas</span>
+                        <span class="stat-value" id="statCotizaciones">0</span>
+                        <span class="stat-desc">Presupuestos activos</span>
+                    </div>
+                    <div class="stat-card" style="--primary: #6366f1;">
+                        <span class="stat-label">Proveedores Activos</span>
+                        <span class="stat-value" id="statProveedores">0</span>
+                        <span class="stat-desc">Directorio guardado</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-header">Resumen de Cuentas por Pagar</h3>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">
+                        Bienvenido al módulo exclusivo de CXP. Aquí gestionas tus proveedores, cotizaciones, retenciones y pagos pendientes con una interfaz optimizada.
+                    </p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="accion" onclick="cambiarPestana('pantallaCalc')">Ir a la Calculadora</button>
+                        <button class="secundario" onclick="cambiarPestana('pantallaLista')">Ver Historial Facturas</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANTALLA CALCULADORA -->
+            <section id="pantallaCalc" class="pantalla">
+                <div class="card">
+                    <h3 class="card-header">Calculadora de Facturas y Cotizaciones</h3>
+                    
+                    <div class="campo">
+                        <label for="tipoDocumentoCalc">Tipo de Registro</label>
+                        <select id="tipoDocumentoCalc" onchange="cambiarModoCalculadora()">
+                            <option value="Factura" selected>Factura (CxP)</option>
+                            <option value="Cotizacion">Cotización / Presupuesto</option>
+                        </select>
+                    </div>
+
+                    <div class="campo">
+                        <label for="nombreProveedor">Nombre del Proveedor / Cliente *</label>
+                        <input type="text" id="nombreProveedor" list="historialProveedores" placeholder="Escribe para buscar proveedor existente...">
+                        <datalist id="historialProveedores"></datalist>
+                    </div>
+                    <div class="grid-form">
+                        <div class="campo">
+                            <label for="numFactura" id="lblNumDoc">Número de Factura</label>
+                            <input type="text" id="numFactura" placeholder="Ej: 0014">
+                        </div>
+                        <div class="campo" id="campoControlContainer">
+                            <label for="numControl">Número de Control</label>
+                            <input type="text" id="numControl" placeholder="Ej: 00-000123">
+                        </div>
+                        <div class="campo">
+                            <label for="ordenCompra">Orden de Compra / Referencia</label>
+                            <input type="text" id="ordenCompra" placeholder="Ej: OC-9982 (Opcional)">
+                        </div>
+                        <div class="campo">
+                            <label for="montoBase">Monto Base</label>
+                            <div class="input-grupo">
+                                <select id="tipoMoneda" aria-label="Seleccionar moneda">
+                                    <option value="$" selected>USD ($)</option>
+                                    <option value="Bs">Bs (VES)</option>
+                                </select>
+                                <input type="number" id="montoBase" value="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="cardTasasRetencion">
+                    <h3 class="card-header">Tasas y Retenciones</h3>
+                    <div class="grid-form">
+                        <div class="campo">
+                            <label for="selectIva">IVA</label>
+                            <select id="selectIva">
+                                <option value="16" selected>16 %</option>
+                                <option value="8">8 %</option>
+                                <option value="0">0 % (Ninguno)</option>
+                            </select>
+                        </div>
+                        <div class="campo">
+                            <label for="selectRetIva">Retención IVA</label>
+                            <select id="selectRetIva">
+                                <option value="75" selected>75 %</option>
+                                <option value="100">100 %</option>
+                                <option value="0">0 % (Ninguna)</option>
+                            </select>
+                        </div>
+                        <div class="campo">
+                            <label for="selectRetIslr">Retención ISLR</label>
+                            <select id="selectRetIslr">
+                                <option value="1" selected>1 %</option>
+                                <option value="2">2 %</option>
+                                <option value="3">3 %</option>
+                                <option value="5">5 %</option>
+                                <option value="0">0 % (Ninguna)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="accion" onclick="agregarDocumentoALista()">Guardar Registro</button>
+            </section>
+
+            <!-- PANTALLA HISTORIAL FACTURAS -->
+            <section id="pantallaLista" class="pantalla">
+                <div class="contenedor-busqueda">
+                    <input type="text" id="inputBuscador" class="input-busqueda" placeholder="Buscar por proveedor, N° de factura, control u orden..." oninput="filtrarFacturas()">
+                </div>
+                <div id="contenedorLista"></div>
+                <button class="borrar-todo" onclick="limpiarTodaLaMemoria()">Borrar Historial de Facturas</button>
+            </section>
+
+            <!-- PANTALLA HISTORIAL COTIZACIONES -->
+            <section id="pantallaCot" class="pantalla">
+                <div class="contenedor-busqueda">
+                    <input type="text" id="inputBuscadorCot" class="input-busqueda" placeholder="Buscar cotización por cliente o número..." oninput="filtrarCotizaciones()">
+                </div>
+                <div id="contenedorListaCot"></div>
+                <button class="borrar-todo" onclick="limpiarCotizacionesMemoria()">Borrar Historial de Cotizaciones</button>
+            </section>
+
+            <!-- PANTALLA ENLAZAR COTIZACIÓN - FACTURA -->
+            <section id="pantallaEnlace" class="pantalla">
+                <div class="card">
+                    <h3 class="card-header">Asociar Cotización con Factura</h3>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                        Selecciona una cotización guardada y enlázala directamente con su respectiva factura emitida para llevar control riguroso.
+                    </p>
+                    <div class="grid-form">
+                        <div class="campo">
+                            <label for="selectAsociarCot">Seleccionar Cotización</label>
+                            <select id="selectAsociarCot"></select>
+                        </div>
+                        <div class="campo">
+                            <label for="selectAsociarFac">Seleccionar Factura</label>
+                            <select id="selectAsociarFac"></select>
+                        </div>
+                    </div>
+                    <button class="accion" onclick="guardarEnlaceCotFac()">Vincular Documentos</button>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-header">Relaciones Activas</h3>
+                    <div id="contenedorListaEnlaces"></div>
+                </div>
+            </section>
+
+            <!-- PANTALLA PROVEEDORES -->
+            <section id="pantallaProv" class="pantalla">
+                <div class="card">
+                    <h3 class="card-header">Agregar Nuevo Proveedor</h3>
+                    <div class="grid-form">
+                        <div class="campo">
+                            <label for="nuevoProvNombre">Nombre o Razón Social *</label>
+                            <input type="text" id="nuevoProvNombre" placeholder="Ej: Inversiones J.M, C.A.">
+                        </div>
+                        <div class="campo">
+                            <label for="nuevoProvRif">RIF / Identificación Fiscal</label>
+                            <input type="text" id="nuevoProvRif" placeholder="Ej: J-12345678-9">
+                        </div>
+                        <div class="campo">
+                            <label for="nuevoProvTelefono">Teléfono</label>
+                            <input type="text" id="nuevoProvTelefono" placeholder="Ej: +58 412 1234567">
+                        </div>
+                        <div class="campo">
+                            <label for="nuevoProvEmail">Correo Electrónico</label>
+                            <input type="email" id="nuevoProvEmail" placeholder="ejemplo@proveedor.com">
+                        </div>
+                    </div>
+                    <div class="campo">
+                        <label for="nuevoProvDireccion">Dirección Fiscal</label>
+                        <textarea id="nuevoProvDireccion" rows="2" placeholder="Calle, Av, Edificio, Ciudad..."></textarea>
+                    </div>
+                    <button class="accion" onclick="registrarNuevoProveedor()">Guardar Proveedor</button>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-header">Proveedores Registrados</h3>
+                    <div class="contenedor-busqueda">
+                        <input type="text" id="buscarProvInput" class="input-busqueda" placeholder="Filtrar por nombre o RIF..." oninput="renderizarTablaProveedores()">
+                    </div>
+                    <div class="tabla-proveedores-contenedor">
+                        <table class="tabla-proveedores">
+                            <thead>
+                                <tr>
+                                    <th>Nombre del Proveedor</th>
+                                    <th>RIF / ID</th>
+                                    <th>Teléfono</th>
+                                    <th style="width: 140px; text-align: right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoTablaProveedores"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANTALLA DETALLE PROVEEDOR -->
+            <section id="pantallaDetalleProv" class="pantalla">
+                <button class="btn-regresar" onclick="cambiarPestana('pantallaProv')">← Volver a Directorio</button>
+                <div class="card">
+                    <h3 class="card-header">Ficha del Proveedor</h3>
+                    <input type="hidden" id="editProvId">
+                    <div class="grid-form">
+                        <div class="campo">
+                            <label for="editProvNombre">Nombre o Razón Social</label>
+                            <input type="text" id="editProvNombre">
+                        </div>
+                        <div class="campo">
+                            <label for="editProvRif">RIF / Identificación Fiscal</label>
+                            <input type="text" id="editProvRif">
+                        </div>
+                        <div class="campo">
+                            <label for="editProvTelefono">Teléfono</label>
+                            <input type="text" id="editProvTelefono">
+                        </div>
+                        <div class="campo">
+                            <label for="editProvEmail">Correo Electrónico</label>
+                            <input type="email" id="editProvEmail">
+                        </div>
+                    </div>
+                    <div class="campo">
+                        <label for="editProvDireccion">Dirección Fiscal</label>
+                        <textarea id="editProvDireccion" rows="3"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                        <button class="accion" onclick="guardarCambiosProveedor()">Guardar Cambios</button>
+                        <button class="secundario" onclick="cambiarPestana('pantallaProv')">Cancelar</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="card-header">Facturas Asociadas</h3>
+                    <div id="contenedorFacturasProveedor"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function entrarDepartamento(deptoId) {
+            document.getElementById('pantallaHome').classList.add('oculto');
+            document.getElementById('appContenedor').classList.remove('oculto');
+            cambiarPestana('pantallaDash');
+            localStorage.setItem('depto_activo_actual', deptoId);
+        }
+
+        function regresarAlHome() {
+            document.getElementById('appContenedor').classList.add('oculto');
+            document.getElementById('pantallaHome').classList.remove('oculto');
+            localStorage.removeItem('depto_activo_actual');
+        }
+
+        function alternarMenuMovil() {
+            let barra = document.getElementById('barraPestanas');
+            barra.classList.toggle('abierta');
+        }
+
+        function ajustarColorSidebarSeguro(colorHex) {
+            let hex = colorHex.replace('#', '');
+            if (hex.length === 3) {
+                hex = hex.split('').map(c => c + c).join('');
+            }
+            let r = parseInt(hex.substring(0, 2), 16) || 0;
+            let g = parseInt(hex.substring(2, 4), 16) || 0;
+            let b = parseInt(hex.substring(4, 6), 16) || 0;
+
+            let luminancia = (0.299 * r + 0.587 * g + 0.114 * b);
+
+            let colorFinal = colorHex;
+            if (luminancia > 240) {
+                colorFinal = '#e2e8f0'; 
+            } else if (luminancia < 15) {
+                colorFinal = '#1e293b'; 
+            }
+
+            document.documentElement.style.setProperty('--sidebar-bg', colorFinal);
+            localStorage.setItem('sidebar_color', colorFinal);
+
+            let colorPicker = document.getElementById('colorPickerSidebar');
+            if (colorPicker && colorPicker.value !== colorFinal) {
+                colorPicker.value = colorFinal;
+            }
+        }
+
+        let listaDeFacturas = JSON.parse(localStorage.getItem('mis_facturas_clave')) || [];
+        let listaCotizaciones = JSON.parse(localStorage.getItem('mis_cotizaciones_clave')) || [];
+        let listaEnlacesCotFac = JSON.parse(localStorage.getItem('mis_enlaces_cot_fac')) || [];
+        let rawProveedores = JSON.parse(localStorage.getItem('mis_proveedores_clave')) || [];
+        
+        let listaProveedores = rawProveedores.map((p, idx) => {
+            if (typeof p === 'string') {
+                return { id: Date.now() + idx, nombre: p, rif: '', telefono: '', email: '', direccion: '' };
+            }
+            return p;
+        });
+
+        window.onload = function() {
+            guardarProveedoresEnStorage();
+            actualizarEstadisticasDashboard();
+            actualizarPantallaListaVisual();
+            actualizarPantallaCotizacionesVisual();
+            cargarDatalistProveedores();
+            renderizarTablaProveedores();
+            cargarSelectsEnlace();
+            renderizarListaEnlaces();
+            cargarPreferenciasTema();
+
+            localStorage.removeItem('depto_activo_actual');
+            regresarAlHome();
+        };
+
+        function guardarProveedoresEnStorage() {
+            localStorage.setItem('mis_proveedores_clave', JSON.stringify(listaProveedores));
+        }
+
+        function actualizarEstadisticasDashboard() {
+            let statTot = document.getElementById('statTotalFacturas');
+            if (statTot) statTot.textContent = listaDeFacturas.length;
+
+            let pendientes = listaDeFacturas.filter(f => f.estado === 'Pendiente').length;
+            let statPend = document.getElementById('statPendientes');
+            if (statPend) statPend.textContent = pendientes;
+
+            let statCot = document.getElementById('statCotizaciones');
+            if (statCot) statCot.textContent = listaCotizaciones.length;
+
+            let statProv = document.getElementById('statProveedores');
+            if (statProv) statProv.textContent = listaProveedores.length;
+        }
+
+        function alternarModoOscuro() {
+            document.body.classList.toggle('dark-mode');
+            let esOscuro = document.body.classList.contains('dark-mode');
+            
+            let iconoTema = document.getElementById('iconoTema');
+            let textoTema = document.getElementById('textoTema');
+            if (iconoTema) iconoTema.textContent = esOscuro ? '☀️' : '🌙';
+            if (textoTema) textoTema.textContent = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
+            
+            let iconoHome = document.getElementById('iconoTemaHome');
+            let textoHome = document.getElementById('textoTemaHome');
+            if (iconoHome && textoHome) {
+                iconoHome.textContent = esOscuro ? '☀️' : '🌙';
+                textoHome.textContent = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
+            }
+            
+            localStorage.setItem('modo_oscuro_activo', esOscuro);
+        }
+
+        function cambiarColorSidebar(colorHex) {
+            ajustarColorSidebarSeguro(colorHex);
+        }
+
+        function cargarPreferenciasTema() {
+            let modoOscuroGuardado = localStorage.getItem('modo_oscuro_activo') === 'true';
+            if (modoOscuroGuardado) {
+                document.body.classList.add('dark-mode');
+                let iconoTema = document.getElementById('iconoTema');
+                let textoTema = document.getElementById('textoTema');
+                if (iconoTema) iconoTema.textContent = '☀️';
+                if (textoTema) textoTema.textContent = 'Modo Claro';
+                let iconoHome = document.getElementById('iconoTemaHome');
+                let textoHome = document.getElementById('textoTemaHome');
+                if (iconoHome && textoHome) {
+                    iconoHome.textContent = '☀️';
+                    textoHome.textContent = 'Modo Claro';
+                }
+            }
+
+            let colorSidebarGuardado = localStorage.getItem('sidebar_color') || '#4a0410';
+            ajustarColorSidebarSeguro(colorSidebarGuardado);
+        }
+
+        function cambiarPestana(idPestana) {
+            document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+            document.querySelectorAll('.btn-pestana').forEach(b => b.classList.remove('activa'));
+
+            let pantallaDestino = document.getElementById(idPestana);
+            if (pantallaDestino) pantallaDestino.classList.add('activa');
+            
+            let titulo = document.getElementById('tituloSeccion');
+
+            if (idPestana === 'pantallaDash') {
+                if (document.getElementById('btnTabDash')) document.getElementById('btnTabDash').classList.add('activa');
+                titulo.textContent = "Dashboard General (CxP)";
+                actualizarEstadisticasDashboard();
+            } else if (idPestana === 'pantallaCalc') {
+                if (document.getElementById('btnTabCalc')) document.getElementById('btnTabCalc').classList.add('activa');
+                titulo.textContent = "Calculadora Contable";
+            } else if (idPestana === 'pantallaLista') {
+                if (document.getElementById('btnTabLista')) document.getElementById('btnTabLista').classList.add('activa');
+                titulo.textContent = "Historial de Facturas (CxP)";
+                actualizarPantallaListaVisual();
+            } else if (idPestana === 'pantallaCot') {
+                if (document.getElementById('btnTabCot')) document.getElementById('btnTabCot').classList.add('activa');
+                titulo.textContent = "Historial de Cotizaciones";
+                actualizarPantallaCotizacionesVisual();
+            } else if (idPestana === 'pantallaEnlace') {
+                if (document.getElementById('btnTabEnlace')) document.getElementById('btnTabEnlace').classList.add('activa');
+                titulo.textContent = "Enlazar Cotización y Factura";
+                cargarSelectsEnlace();
+                renderizarListaEnlaces();
+            } else if (idPestana === 'pantallaProv' || idPestana === 'pantallaDetalleProv') {
+                if (document.getElementById('btnTabProv')) document.getElementById('btnTabProv').classList.add('activa');
+                titulo.textContent = idPestana === 'pantallaProv' ? "Directorio de Proveedores (CxP)" : "Detalle del Proveedor";
+                if (idPestana === 'pantallaProv') renderizarTablaProveedores();
+            }
+
+            let barra = document.getElementById('barraPestanas');
+            if (barra && barra.classList.contains('abierta')) {
+                barra.classList.remove('abierta');
+            }
+        }
+
+        function cambiarModoCalculadora() {
+            let tipo = document.getElementById('tipoDocumentoCalc').value;
+            let lblNumDoc = document.getElementById('lblNumDoc');
+            
+            if (tipo === 'Cotizacion') {
+                lblNumDoc.textContent = "Número de Cotización (Opcional)";
+            } else {
+                lblNumDoc.textContent = "Número de Factura *";
+            }
+        }
+
+        function cargarDatalistProveedores() {
+            let datalist = document.getElementById('historialProveedores');
+            if (!datalist) return;
+            datalist.innerHTML = "";
+            listaProveedores.forEach(prov => {
+                let option = document.createElement('option');
+                option.value = prov.nombre;
+                datalist.appendChild(option);
+            });
+        }
+
+        function registrarNuevoProveedor() {
+            let nombreInput = document.getElementById('nuevoProvNombre');
+            let nombre = nombreInput.value.trim();
+
+            if (nombre === "") {
+                alert("Por favor escribe el nombre del proveedor.");
+                return;
+            }
+
+            if (listaProveedores.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
+                alert("Este proveedor ya se encuentra registrado.");
+                return;
+            }
+
+            let nuevoProv = {
+                id: Date.now(),
+                nombre: nombre,
+                rif: document.getElementById('nuevoProvRif').value.trim(),
+                telefono: document.getElementById('nuevoProvTelefono').value.trim(),
+                email: document.getElementById('nuevoProvEmail').value.trim(),
+                direccion: document.getElementById('nuevoProvDireccion').value.trim()
+            };
+
+            listaProveedores.push(nuevoProv);
+            guardarProveedoresEnStorage();
+
+            nombreInput.value = "";
+            document.getElementById('nuevoProvRif').value = "";
+            document.getElementById('nuevoProvTelefono').value = "";
+            document.getElementById('nuevoProvEmail').value = "";
+            document.getElementById('nuevoProvDireccion').value = "";
+
+            cargarDatalistProveedores();
+            renderizarTablaProveedores();
+            actualizarEstadisticasDashboard();
+        }
+
+        function renderizarTablaProveedores() {
+            let tbody = document.getElementById('cuerpoTablaProveedores');
+            if (!tbody) return;
+            let busquedaInput = document.getElementById('buscarProvInput');
+            let busqueda = busquedaInput ? busquedaInput.value.toLowerCase() : "";
+            tbody.innerHTML = "";
+
+            let filtrados = listaProveedores.filter(p => 
+                p.nombre.toLowerCase().includes(busqueda) || 
+                (p.rif && p.rif.toLowerCase().includes(busqueda))
+            );
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color: var(--text-secondary);">No hay proveedores registrados.</td></tr>`;
+                return;
+            }
+
+            filtrados.forEach((prov) => {
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <span class="enlace-proveedor" onclick="verDetalleProveedor(${prov.id})">${escapeHtml(prov.nombre)}</span>
+                    </td>
+                    <td>${escapeHtml(prov.rif) || 'N/A'}</td>
+                    <td>${escapeHtml(prov.telefono) || 'N/A'}</td>
+                    <td style="text-align: right;">
+                        <button class="secundario" style="padding: 4px 8px; font-size: 12px; margin-right: 4px;" onclick="verDetalleProveedor(${prov.id})">Editar</button>
+                        <button class="btn-eliminar-unica" onclick="eliminarProveedor(${prov.id})">Borrar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function verDetalleProveedor(id) {
+            let prov = listaProveedores.find(p => p.id === id);
+            if (!prov) return;
+
+            document.getElementById('editProvId').value = prov.id;
+            document.getElementById('editProvNombre').value = prov.nombre;
+            document.getElementById('editProvRif').value = prov.rif || '';
+            document.getElementById('editProvTelefono').value = prov.telefono || '';
+            document.getElementById('editProvEmail').value = prov.email || '';
+            document.getElementById('editProvDireccion').value = prov.direccion || '';
+
+            renderizarFacturasDeProveedor(prov.id);
+            cambiarPestana('pantallaDetalleProv');
+        }
+
+        function guardarCambiosProveedor() {
+            let id = parseInt(document.getElementById('editProvId').value);
+            let prov = listaProveedores.find(p => p.id === id);
+
+            if (!prov) return;
+
+            let nuevoNombre = document.getElementById('editProvNombre').value.trim();
+            if (nuevoNombre === "") {
+                alert("El nombre del proveedor no puede estar vacío.");
+                return;
+            }
+
+            prov.nombre = nuevoNombre;
+            prov.rif = document.getElementById('editProvRif').value.trim();
+            prov.telefono = document.getElementById('editProvTelefono').value.trim();
+            prov.email = document.getElementById('editProvEmail').value.trim();
+            prov.direccion = document.getElementById('editProvDireccion').value.trim();
+
+            listaDeFacturas.forEach(f => {
+                if (f.proveedorId === id) {
+                    f.proveedor = nuevoNombre;
+                }
+            });
+            localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
+
+            listaCotizaciones.forEach(c => {
+                if (c.proveedorId === id) {
+                    c.proveedor = nuevoNombre;
+                }
+            });
+            localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
+
+            guardarProveedoresEnStorage();
+            cargarDatalistProveedores();
+            alert("Información del proveedor actualizada correctamente.");
+            cambiarPestana('pantallaProv');
+        }
+
+        function renderizarFacturasDeProveedor(proveedorId) {
+            let contenedor = document.getElementById('contenedorFacturasProveedor');
+            if (!contenedor) return;
+            contenedor.innerHTML = "";
+
+            let facturasProv = listaDeFacturas.filter(f => f.proveedorId === proveedorId);
+
+            if (facturasProv.length === 0) {
+                contenedor.innerHTML = "<p style='color: var(--text-secondary);'>No hay facturas registradas para este proveedor.</p>";
+                return;
+            }
+
+            facturasProv.forEach(factura => {
+                let div = document.createElement('div');
+                div.className = `fila-factura fila-${escapeHtml(factura.estado)}`;
+                
+                let fechaTexto = factura.fechaCreacion ? factura.fechaCreacion : 'Fecha no registrada';
+
+                div.innerHTML = `
+                    <div class="fila-encabezado">
+                        <div>
+                            <span style="font-size: 15px; font-weight: 600;">Factura N° ${escapeHtml(factura.nro || 'S/N')}</span> 
+                            <span style="color: var(--text-secondary);">| Control: ${escapeHtml(factura.control)}</span>
+                        </div>
+                        <span class="badge-estado estado-${escapeHtml(factura.estado)}">${escapeHtml(factura.estado)}</span>
+                    </div>
+
+                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <span>Orden de Compra: <strong>${escapeHtml(factura.ordenCompra) || 'No especificada'}</strong></span>
+                        <span style="color: var(--text-secondary); font-style: italic;">Creada: ${escapeHtml(fechaTexto)}</span>
+                    </div>
+
+                    <div class="desglose-impuestos">
+                        <div class="item-desglose">
+                            <span>Monto Base</span>
+                            <strong>${escapeHtml(factura.moneda)}${factura.base}</strong>
+                        </div>
+                        ${parseFloat(factura.tasaIva) > 0 ? `
+                        <div class="item-desglose">
+                            <span>IVA (+${factura.tasaIva}%)</span>
+                            <strong class="monto-suma">+${escapeHtml(factura.moneda)}${factura.montoIva}</strong>
+                        </div>` : ''}
+                        ${parseFloat(factura.tasaRetIva) > 0 ? `
+                        <div class="item-desglose">
+                            <span>Ret. IVA (-${factura.tasaRetIva}%)</span>
+                            <strong class="monto-resta">-${escapeHtml(factura.moneda)}${factura.montoRetIva}</strong>
+                        </div>` : ''}
+                        ${parseFloat(factura.tasaRetIslr) > 0 ? `
+                        <div class="item-desglose">
+                            <span>Ret. ISLR (-${factura.tasaRetIslr}%)</span>
+                            <strong class="monto-resta">-${escapeHtml(factura.moneda)}${factura.montoRetIslr}</strong>
+                        </div>` : ''}
+                        <div class="item-desglose">
+                            <span>Neto A Pagar</span>
+                            <strong style="color: var(--primary); font-size: 13px;">${escapeHtml(factura.moneda)}${factura.neto}</strong>
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+        }
+
+        function eliminarProveedor(id) {
+            let prov = listaProveedores.find(p => p.id === id);
+            if (!prov) return;
+
+            let facturasAsociadas = listaDeFacturas.filter(f => f.proveedorId === id);
+            let cotizacionesAsociadas = listaCotizaciones.filter(c => c.proveedorId === id);
+            let mensajeConfirmacion = `¿Deseas eliminar a "${prov.nombre}" del directorio?`;
+            
+            if (facturasAsociadas.length > 0 || cotizacionesAsociadas.length > 0) {
+                mensajeConfirmacion += `\n\nAdvertencia: Tiene registros asociados.`;
+            }
+
+            if (confirm(mensajeConfirmacion)) {
+                listaProveedores = listaProveedores.filter(p => p.id !== id);
+                guardarProveedoresEnStorage();
+                cargarDatalistProveedores();
+                renderizarTablaProveedores();
+                actualizarEstadisticasDashboard();
+            }
+        }
+
+        function agregarDocumentoALista() {
+            let tipoDoc = document.getElementById('tipoDocumentoCalc').value;
+            let provNombre = document.getElementById('nombreProveedor').value.trim();
+            let numero = document.getElementById('numFactura').value.trim();
+            let control = document.getElementById('numControl').value.trim();
+            let ordenCompra = document.getElementById('ordenCompra').value.trim();
+            let base = parseFloat(document.getElementById('montoBase').value) || 0;
+            let moneda = document.getElementById('tipoMoneda').value;
+
+            if (provNombre === "") { alert("Por favor escribe el nombre del proveedor."); return; }
+            if (tipoDoc === 'Factura' && numero === "") { alert("Por favor escribe el número de factura."); return; }
+
+            let provExistente = listaProveedores.find(p => p.nombre.toLowerCase() === provNombre.toLowerCase());
+            
+            if (!provExistente) {
+                provExistente = { id: Date.now(), nombre: provNombre, rif: '', telefono: '', email: '', direccion: '' };
+                listaProveedores.push(provExistente);
+                guardarProveedoresEnStorage();
+                cargarDatalistProveedores();
+                renderizarTablaProveedores();
+            }
+
+            let ahora = new Date();
+            let fechaFormateada = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            let tasaIva = parseFloat(document.getElementById('selectIva').value);
+            let tasaRetIva = parseFloat(document.getElementById('selectRetIva').value);
+            let tasaRetIslr = parseFloat(document.getElementById('selectRetIslr').value);
+
+            let iva = base * (tasaIva / 100);
+            let retIva = iva * (tasaRetIva / 100);
+            let retIslr = base * (tasaRetIslr / 100);
+            let neto = (base + iva) - (retIva + retIslr);
+
+            if (tipoDoc === 'Cotizacion') {
+                let nuevaCot = {
+                    id: Date.now(),
+                    proveedorId: provExistente.id,
+                    proveedor: provExistente.nombre,
+                    nro: numero || "S/N",
+                    control: control || "N/A",
+                    ordenCompra: ordenCompra || "",
+                    moneda: moneda,
+                    base: base.toFixed(2),
+                    tasaIva: tasaIva,
+                    montoIva: iva.toFixed(2),
+                    tasaRetIva: tasaRetIva,
+                    montoRetIva: retIva.toFixed(2),
+                    tasaRetIslr: tasaRetIslr,
+                    montoRetIslr: retIslr.toFixed(2),
+                    neto: neto.toFixed(2),
+                    estado: "Pendiente",
+                    nota: "",
+                    fechaCreacion: fechaFormateada
+                };
+
+                listaCotizaciones.push(nuevaCot);
+                localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
+
+                document.getElementById('nombreProveedor').value = "";
+                document.getElementById('numFactura').value = "";
+                document.getElementById('numControl').value = "";
+                document.getElementById('ordenCompra').value = "";
+                document.getElementById('montoBase').value = "0";
+
+                actualizarEstadisticasDashboard();
+                cambiarPestana('pantallaCot');
+
+            } else {
+                let nuevaFactura = {
+                    id: Date.now(),
+                    proveedorId: provExistente.id,
+                    proveedor: provExistente.nombre,
+                    nro: numero,
+                    control: control || "N/A",
+                    ordenCompra: ordenCompra || "",
+                    moneda: moneda,
+                    base: base.toFixed(2),
+                    tasaIva: tasaIva,
+                    montoIva: iva.toFixed(2),
+                    tasaRetIva: tasaRetIva,
+                    montoRetIva: retIva.toFixed(2),
+                    tasaRetIslr: tasaRetIslr,
+                    montoRetIslr: retIslr.toFixed(2),
+                    neto: neto.toFixed(2),
+                    estado: "Pendiente",
+                    nota: "",
+                    fechaCreacion: fechaFormateada
+                };
+
+                listaDeFacturas.push(nuevaFactura);
+                localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
+
+                document.getElementById('nombreProveedor').value = "";
+                document.getElementById('numFactura').value = "";
+                document.getElementById('numControl').value = "";
+                document.getElementById('ordenCompra').value = "";
+                document.getElementById('montoBase').value = "0";
+
+                actualizarEstadisticasDashboard();
+                cambiarPestana('pantallaLista');
+            }
+        }
+
+        function actualizarPantallaListaVisual(listaAProcesar = listaDeFacturas) {
+            let contenedor = document.getElementById('contenedorLista');
+            if (!contenedor) return;
+            contenedor.innerHTML = "";
+
+            if (listaAProcesar.length === 0) {
+                contenedor.innerHTML = "<p style='color: var(--text-secondary);'>No hay facturas en el historial.</p>";
+                return;
+            }
+
+            listaAProcesar.forEach(factura => {
+                let div = document.createElement('div');
+                div.className = `fila-factura fila-${escapeHtml(factura.estado)}`;
+                
+                let fechaTexto = factura.fechaCreacion ? factura.fechaCreacion : 'Fecha no registrada';
+
+                div.innerHTML = `
+                    <div class="fila-encabezado">
+                        <div>
+                            <span style="font-size: 16px; font-weight: 700; color: var(--text-primary);">${escapeHtml(factura.proveedor)}</span> <br>
+                            <span style="color: var(--text-secondary);">Factura N° ${escapeHtml(factura.nro)} | Control N° ${escapeHtml(factura.control)}</span>
+                        </div>
+                        <div class="controles-fila">
+                            <button class="badge-estado estado-${escapeHtml(factura.estado)}" onclick="rotarEstadoFactura(${factura.id})">
+                                ${escapeHtml(factura.estado)}
+                            </button>
+                            <button class="btn-eliminar-unica" onclick="eliminarFactura(${factura.id})">Borrar</button>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 12px; color: var(--text-secondary); font-style: italic; display: flex; align-items: center; gap: 6px;">
+                        <span>📅 Creada el: <strong>${escapeHtml(fechaTexto)}</strong></span>
+                    </div>
+
+                    <div class="desglose-impuestos">
+                        <div class="item-desglose">
+                            <span>Monto Base</span>
+                            <strong>${escapeHtml(factura.moneda)}${factura.base}</strong>
+                        </div>
+                        ${parseFloat(factura.tasaIva) > 0 ? `
+                        <div class="item-desglose">
+                            <span>IVA (+${factura.tasaIva}%)</span>
+                            <strong class="monto-suma">+${escapeHtml(factura.moneda)}${factura.montoIva}</strong>
+                        </div>` : ''}
+                        ${parseFloat(factura.tasaRetIva) > 0 ? `
+                        <div class="item-desglose">
+                            <span>Ret. IVA (-${factura.tasaRetIva}%)</span>
+                            <strong class="monto-resta">-${escapeHtml(factura.moneda)}${factura.montoRetIva}</strong>
+                        </div>` : ''}
+                        ${parseFloat(factura.tasaRetIslr) > 0 ? `
+                        <div class="item-desglose">
+                            <span>Ret. ISLR (-${factura.tasaRetIslr}%)</span>
+                            <strong class="monto-resta">-${escapeHtml(factura.moneda)}${factura.montoRetIslr}</strong>
+                        </div>` : ''}
+                        <div class="item-desglose">
+                            <span>Neto A Pagar</span>
+                            <strong style="color: var(--primary); font-size: 13px;">${escapeHtml(factura.moneda)}${factura.neto}</strong>
+                        </div>
+                    </div>
+
+                    <div class="inputs-factura-extra">
+                        <input type="text" class="input-oc-lista" placeholder="Orden de compra..." 
+                            value="${escapeHtml(factura.ordenCompra || '')}" onchange="actualizarOrdenCompra(${factura.id}, this.value)">
+                        <input type="text" class="input-nota-lista" placeholder="Escribir nota u observación..." 
+                            value="${escapeHtml(factura.nota || '')}" onchange="actualizarNota(${factura.id}, this.value)">
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+        }
+
+        function actualizarPantallaCotizacionesVisual(listaAProcesar = listaCotizaciones) {
+            let contenedor = document.getElementById('contenedorListaCot');
+            if (!contenedor) return;
+            contenedor.innerHTML = "";
+
+            if (listaAProcesar.length === 0) {
+                contenedor.innerHTML = "<p style='color: var(--text-secondary);'>No hay cotizaciones registradas.</p>";
+                return;
+            }
+
+            listaAProcesar.forEach(cot => {
+                let div = document.createElement('div');
+                let estadoSeguro = cot.estado || 'Pendiente';
+                div.className = `fila-factura fila-${escapeHtml(estadoSeguro)}`;
+                
+                let fechaTexto = cot.fechaCreacion ? cot.fechaCreacion : 'Fecha no registrada';
+
+                div.innerHTML = `
+                    <div class="fila-encabezado">
+                        <div>
+                            <span style="font-size: 16px; font-weight: 700; color: var(--text-primary);">${escapeHtml(cot.proveedor)}</span> <br>
+                            <span style="color: var(--text-secondary);">Cotización N° ${escapeHtml(cot.nro)} | Control N° ${escapeHtml(cot.control)}</span>
+                        </div>
+                        <div class="controles-fila">
+                            <button class="badge-estado estado-${escapeHtml(estadoSeguro)}" onclick="rotarEstadoCotizacion(${cot.id})">
+                                ${escapeHtml(estadoSeguro)}
+                            </button>
+                            <button class="btn-eliminar-unica" onclick="eliminarCotizacion(${cot.id})">Borrar</button>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 12px; color: var(--text-secondary); font-style: italic; display: flex; align-items: center; gap: 6px;">
+                        <span>📅 Creada el: <strong>${escapeHtml(fechaTexto)}</strong></span>
+                    </div>
+
+                    <div class="desglose-impuestos">
+                        <div class="item-desglose">
+                            <span>Monto Base</span>
+                            <strong>${escapeHtml(cot.moneda)}${cot.base}</strong>
+                        </div>
+                        ${parseFloat(cot.tasaIva) > 0 ? `
+                        <div class="item-desglose">
+                            <span>IVA (+${cot.tasaIva}%)</span>
+                            <strong class="monto-suma">+${escapeHtml(cot.moneda)}${cot.montoIva}</strong>
+                        </div>` : ''}
+                        ${parseFloat(cot.tasaRetIva) > 0 ? `
+                        <div class="item-desglose">
+                            <span>Ret. IVA (-${cot.tasaRetIva}%)</span>
+                            <strong class="monto-resta">-${escapeHtml(cot.moneda)}${cot.montoRetIva}</strong>
+                        </div>` : ''}
+                        ${parseFloat(cot.tasaRetIslr) > 0 ? `
+                        <div class="item-desglose">
+                            <span>Ret. ISLR (-${cot.tasaRetIslr}%)</span>
+                            <strong class="monto-resta">-${escapeHtml(cot.moneda)}${cot.montoRetIslr}</strong>
+                        </div>` : ''}
+                        <div class="item-desglose">
+                            <span>Neto A Pagar</span>
+                            <strong style="color: var(--primary); font-size: 13px;">${escapeHtml(cot.moneda)}${cot.neto}</strong>
+                        </div>
+                    </div>
+
+                    <div class="inputs-factura-extra">
+                        <input type="text" class="input-oc-lista" placeholder="Referencia..." 
+                            value="${escapeHtml(cot.ordenCompra || '')}" onchange="actualizarOrdenCompraCot(${cot.id}, this.value)">
+                        <input type="text" class="input-nota-lista" placeholder="Nota de cotización..." 
+                            value="${escapeHtml(cot.nota || '')}" onchange="actualizarNotaCot(${cot.id}, this.value)">
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+        }
+
+        function cargarSelectsEnlace() {
+            let selectCot = document.getElementById('selectAsociarCot');
+            let selectFac = document.getElementById('selectAsociarFac');
+            if (!selectCot || !selectFac) return;
+
+            selectCot.innerHTML = "";
+            selectFac.innerHTML = "";
+
+            if (listaCotizaciones.length === 0) {
+                selectCot.innerHTML = `<option value="">No hay cotizaciones disponibles</option>`;
+            } else {
+                listaCotizaciones.forEach(c => {
+                    let opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.proveedor} - Cot. N° ${c.nro} (${c.moneda}${c.neto})`;
+                    selectCot.appendChild(opt);
+                });
+            }
+
+            if (listaDeFacturas.length === 0) {
+                selectFac.innerHTML = `<option value="">No hay facturas disponibles</option>`;
+            } else {
+                listaDeFacturas.forEach(f => {
+                    let opt = document.createElement('option');
+                    opt.value = f.id;
+                    opt.textContent = `${f.proveedor} - Fac. N° ${f.nro} (${f.moneda}${f.neto})`;
+                    selectFac.appendChild(opt);
+                });
+            }
+        }
+
+        function guardarEnlaceCotFac() {
+            let cotId = document.getElementById('selectAsociarCot').value;
+            let facId = document.getElementById('selectAsociarFac').value;
+
+            if (!cotId || !facId || isNaN(cotId) || isNaN(facId)) {
+                alert("Por favor selecciona una cotización y una factura válidas para vincular.");
+                return;
+            }
+
+            let nuevoEnlace = {
+                id: Date.now(),
+                cotizacionId: parseInt(cotId),
+                facturaId: parseInt(facId)
+            };
+
+            listaEnlacesCotFac.push(nuevoEnlace);
+            localStorage.setItem('mis_enlaces_cot_fac', JSON.stringify(listaEnlacesCotFac));
+            renderizarListaEnlaces();
+            alert("Documentos vinculados correctamente.");
+        }
+
+        function renderizarListaEnlaces() {
+            let contenedor = document.getElementById('contenedorListaEnlaces');
+            if (!contenedor) return;
+            contenedor.innerHTML = "";
+
+            if (listaEnlacesCotFac.length === 0) {
+                contenedor.innerHTML = "<p style='color: var(--text-secondary);'>No hay asociaciones registradas actualmente.</p>";
+                return;
+            }
+
+            listaEnlacesCotFac.forEach(enlace => {
+                let cot = listaCotizaciones.find(c => c.id === enlace.cotizacionId);
+                let fac = listaDeFacturas.find(f => f.id === enlace.facturaId);
+
+                let div = document.createElement('div');
+                div.className = "fila-factura";
+                div.style.borderLeft = "5px solid var(--primary)";
+
+                let cotTexto = cot ? `${escapeHtml(cot.proveedor)} - Cot. N° ${escapeHtml(cot.nro)} [${escapeHtml(cot.moneda)}${cot.neto}]` : 'Cotización eliminada';
+                let facTexto = fac ? `${escapeHtml(fac.proveedor)} - Fac. N° ${escapeHtml(fac.nro)} [${escapeHtml(fac.moneda)}${fac.neto}]` : 'Factura eliminada';
+
+                div.innerHTML = `
+                    <div class="fila-encabezado">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Relación de Control Contable</span>
+                        <button class="btn-eliminar-unica" onclick="eliminarEnlace(${enlace.id})">Desvincular</button>
+                    </div>
+                    <div class="tarjeta-enlace-grid">
+                        <div class="bloque-enlace-item">
+                            <span style="color: var(--text-secondary); display: block; font-weight: 600; margin-bottom: 2px;">COTIZACIÓN</span>
+                            <strong>${cotTexto}</strong>
+                        </div>
+                        <div class="separador-enlace">⇄</div>
+                        <div class="bloque-enlace-item">
+                            <span style="color: var(--text-secondary); display: block; font-weight: 600; margin-bottom: 2px;">FACTURA</span>
+                            <strong>${facTexto}</strong>
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+        }
+
+        function eliminarEnlace(id) {
+            if (confirm("¿Deseas desvincular estos documentos?")) {
+                listaEnlacesCotFac = listaEnlacesCotFac.filter(e => e.id !== id);
+                localStorage.setItem('mis_enlaces_cot_fac', JSON.stringify(listaEnlacesCotFac));
+                renderizarListaEnlaces();
+            }
+        }
+
+        function rotarEstadoFactura(id) {
+            let factura = listaDeFacturas.find(f => f.id === id);
+            if (!factura) return;
+
+            if (factura.estado === "Pendiente") factura.estado = "Tesoreria";
+            else if (factura.estado === "Tesoreria") factura.estado = "Pagado";
+            else factura.estado = "Pendiente";
+
+            localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
+            actualizarEstadisticasDashboard();
+            filtrarFacturas();
+        }
+
+        function rotarEstadoCotizacion(id) {
+            let cot = listaCotizaciones.find(c => c.id === id);
+            if (!cot) return;
+
+            if (!cot.estado || cot.estado === "Pendiente") cot.estado = "Tesoreria";
+            else if (cot.estado === "Tesoreria") cot.estado = "Pagado";
+            else cot.estado = "Pendiente";
+
+            localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
+            actualizarEstadisticasDashboard();
+            filtrarCotizaciones();
+        }
+
+        function actualizarNota(id, texto) {
+            let factura = listaDeFacturas.find(f => f.id === id);
+            if (factura) {
+                factura.nota = texto;
+                localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
+            }
+        }
+
+        function actualizarOrdenCompra(id, texto) {
+            let factura = listaDeFacturas.find(f => f.id === id);
+            if (factura) {
+                factura.ordenCompra = texto;
+                localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
+            }
+        }
+
+        function actualizarNotaCot(id, texto) {
+            let cot = listaCotizaciones.find(c => c.id === id);
+            if (cot) {
+                cot.nota = texto;
+                localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
+            }
+        }
+
+        function actualizarOrdenCompraCot(id, texto) {
+            let cot = listaCotizaciones.find(c => c.id === id);
+            if (cot) {
+                cot.ordenCompra = texto;
+                localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
+            }
+        }
+
+        function filtrarFacturas() {
+            let inputBuscador = document.getElementById('inputBuscador');
+            if (!inputBuscador) return;
+            let busqueda = inputBuscador.value.toLowerCase();
+            let filtradas = listaDeFacturas.filter(f => 
+                f.proveedor.toLowerCase().includes(busqueda) || 
+                f.nro.toLowerCase().includes(busqueda) ||
+                (f.control && f.control.toLowerCase().includes(busqueda)) ||
+                (f.ordenCompra && f.ordenCompra.toLowerCase().includes(busqueda))
+            );
+            actualizarPantallaListaVisual(filtradas);
+        }
+
+        function filtrarCotizaciones() {
+            let inputBuscador = document.getElementById('inputBuscadorCot');
+            if (!inputBuscador) return;
+            let busqueda = inputBuscador.value.toLowerCase();
+            let filtradas = listaCotizaciones.filter(c => 
+                c.proveedor.toLowerCase().includes(busqueda) || 
+                c.nro.toLowerCase().includes(busqueda) ||
+                (c.control && c.control.toLowerCase().includes(busqueda)) ||
+                (c.ordenCompra && c.ordenCompra.toLowerCase().includes(busqueda))
+            );
+            actualizarPantallaCotizacionesVisual(filtradas);
+        }
+
+        function eliminarFactura(id) {
+            if (confirm("¿Deseas eliminar esta factura del historial?")) {
+                listaDeFacturas = listaDeFacturas.filter(f => f.id !== id);
+                localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
+                actualizarEstadisticasDashboard();
+                filtrarFacturas();
+            }
+        }
+
+        function eliminarCotizacion(id) {
+            if (confirm("¿Deseas eliminar esta cotización del historial?")) {
+                listaCotizaciones = listaCotizaciones.filter(c => c.id !== id);
+                localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
+                actualizarEstadisticasDashboard();
+                filtrarCotizaciones();
+            }
+        }
+
+        function limpiarTodaLaMemoria() {
+            if (confirm("¿Seguro que deseas vaciar el historial de facturas?")) {
+                listaDeFacturas = [];
+                localStorage.removeItem('mis_facturas_clave');
+                actualizarEstadisticasDashboard();
+                actualizarPantallaListaVisual();
+            }
+        }
+
+        function limpiarCotizacionesMemoria() {
+            if (confirm("¿Seguro que deseas vaciar el historial de cotizaciones?")) {
+                listaCotizaciones = [];
+                localStorage.removeItem('mis_cotizaciones_clave');
+                actualizarEstadisticasDashboard();
+                actualizarPantallaCotizacionesVisual();
+            }
+        }
+    </script>
+</body>
+</html>
