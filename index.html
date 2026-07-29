@@ -538,7 +538,6 @@
             color: var(--text-primary);
         }
 
-        /* Estilos específicos para Enlace Compacto Cotización - Factura */
         .tarjeta-enlace-grid {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
@@ -810,7 +809,7 @@
                 <div class="card">
                     <h3 class="card-header">Resumen de Cuentas por Pagar</h3>
                     <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">
-                        Bienvenido al módulo exclusivo de CXP. Aquí gestionas tus proveedores, cotizaciones, retenciones y pagos pendientes con una interfaz optimizada.
+                        Bienvenido al módulo exclusivo de CXP sincronizado en la nube mediante Firebase.
                     </p>
                     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                         <button class="accion" onclick="cambiarPestana('pantallaCalc')">Ir a la Calculadora</button>
@@ -904,7 +903,6 @@
                     <input type="text" id="inputBuscador" class="input-busqueda" placeholder="Buscar por proveedor, N° de factura, control u orden..." oninput="filtrarFacturas()">
                 </div>
                 <div id="contenedorLista"></div>
-                <button class="borrar-todo" onclick="limpiarTodaLaMemoria()">Borrar Historial de Facturas</button>
             </section>
 
             <!-- PANTALLA HISTORIAL COTIZACIONES -->
@@ -913,7 +911,6 @@
                     <input type="text" id="inputBuscadorCot" class="input-busqueda" placeholder="Buscar cotización por cliente o número..." oninput="filtrarCotizaciones()">
                 </div>
                 <div id="contenedorListaCot"></div>
-                <button class="borrar-todo" onclick="limpiarCotizacionesMemoria()">Borrar Historial de Cotizaciones</button>
             </section>
 
             <!-- PANTALLA ENLAZAR COTIZACIÓN - FACTURA -->
@@ -921,7 +918,7 @@
                 <div class="card">
                     <h3 class="card-header">Asociar Cotización con Factura</h3>
                     <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
-                        Selecciona una cotización guardada y enlázala directamente con su respectiva factura emitida para llevar control riguroso.
+                        Selecciona una cotización guardada y enlázala directamente con su respectiva factura emitida.
                     </p>
                     <div class="grid-form">
                         <div class="campo">
@@ -1034,8 +1031,59 @@
         </main>
     </div>
 
-    <script>
-        function escapeHtml(text) {
+    <!-- SCRIPT DE FIREBASE Y LÓGICA DE LA APLICACIÓN -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDnLN7dcTsYQLwt0cMPUVzMicrFSnxAccU",
+            authDomain: "control-cxp.firebaseapp.com",
+            projectId: "control-cxp",
+            storageBucket: "control-cxp.firebasestorage.app",
+            messagingSenderId: "1039019434368",
+            appId: "1:1039019434368:web:074994d6277527f79e2165",
+            measurementId: "G-8J8LMYETTJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Variables globales sincronizadas
+        window.listaDeFacturas = [];
+        window.listaCotizaciones = [];
+        window.listaEnlacesCotFac = [];
+        window.listaProveedores = [];
+
+        // Escuchar cambios en tiempo real desde Firestore
+        onSnapshot(collection(db, "facturas"), (snapshot) => {
+            window.listaDeFacturas = snapshot.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+            actualizarEstadisticasDashboard();
+            actualizarPantallaListaVisual();
+            cargarSelectsEnlace();
+        });
+
+        onSnapshot(collection(db, "cotizaciones"), (snapshot) => {
+            window.listaCotizaciones = snapshot.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+            actualizarEstadisticasDashboard();
+            actualizarPantallaCotizacionesVisual();
+            cargarSelectsEnlace();
+        });
+
+        onSnapshot(collection(db, "proveedores"), (snapshot) => {
+            window.listaProveedores = snapshot.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+            cargarDatalistProveedores();
+            renderizarTablaProveedores();
+            actualizarEstadisticasDashboard();
+        });
+
+        onSnapshot(collection(db, "enlaces"), (snapshot) => {
+            window.listaEnlacesCotFac = snapshot.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+            renderizarListaEnlaces();
+        });
+
+        // Funciones expuestas al ámbito global para HTML
+        window.escapeHtml = function(text) {
             if (!text) return '';
             return String(text)
                 .replace(/&/g, "&amp;")
@@ -1043,27 +1091,25 @@
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
-        }
+        };
 
-        function entrarDepartamento(deptoId) {
+        window.entrarDepartamento = function(deptoId) {
             document.getElementById('pantallaHome').classList.add('oculto');
             document.getElementById('appContenedor').classList.remove('oculto');
-            cambiarPestana('pantallaDash');
-            localStorage.setItem('depto_activo_actual', deptoId);
-        }
+            window.cambiarPestana('pantallaDash');
+        };
 
-        function regresarAlHome() {
+        window.regresarAlHome = function() {
             document.getElementById('appContenedor').classList.add('oculto');
             document.getElementById('pantallaHome').classList.remove('oculto');
-            localStorage.removeItem('depto_activo_actual');
-        }
+        };
 
-        function alternarMenuMovil() {
+        window.alternarMenuMovil = function() {
             let barra = document.getElementById('barraPestanas');
             barra.classList.toggle('abierta');
-        }
+        };
 
-        function ajustarColorSidebarSeguro(colorHex) {
+        window.ajustarColorSidebarSeguro = function(colorHex) {
             let hex = colorHex.replace('#', '');
             if (hex.length === 3) {
                 hex = hex.split('').map(c => c + c).join('');
@@ -1071,72 +1117,17 @@
             let r = parseInt(hex.substring(0, 2), 16) || 0;
             let g = parseInt(hex.substring(2, 4), 16) || 0;
             let b = parseInt(hex.substring(4, 6), 16) || 0;
-
             let luminancia = (0.299 * r + 0.587 * g + 0.114 * b);
 
             let colorFinal = colorHex;
-            if (luminancia > 240) {
-                colorFinal = '#e2e8f0'; 
-            } else if (luminancia < 15) {
-                colorFinal = '#1e293b'; 
-            }
+            if (luminancia > 240) colorFinal = '#e2e8f0'; 
+            else if (luminancia < 15) colorFinal = '#1e293b'; 
 
             document.documentElement.style.setProperty('--sidebar-bg', colorFinal);
             localStorage.setItem('sidebar_color', colorFinal);
-
-            let colorPicker = document.getElementById('colorPickerSidebar');
-            if (colorPicker && colorPicker.value !== colorFinal) {
-                colorPicker.value = colorFinal;
-            }
-        }
-
-        let listaDeFacturas = JSON.parse(localStorage.getItem('mis_facturas_clave')) || [];
-        let listaCotizaciones = JSON.parse(localStorage.getItem('mis_cotizaciones_clave')) || [];
-        let listaEnlacesCotFac = JSON.parse(localStorage.getItem('mis_enlaces_cot_fac')) || [];
-        let rawProveedores = JSON.parse(localStorage.getItem('mis_proveedores_clave')) || [];
-        
-        let listaProveedores = rawProveedores.map((p, idx) => {
-            if (typeof p === 'string') {
-                return { id: Date.now() + idx, nombre: p, rif: '', telefono: '', email: '', direccion: '' };
-            }
-            return p;
-        });
-
-        window.onload = function() {
-            guardarProveedoresEnStorage();
-            actualizarEstadisticasDashboard();
-            actualizarPantallaListaVisual();
-            actualizarPantallaCotizacionesVisual();
-            cargarDatalistProveedores();
-            renderizarTablaProveedores();
-            cargarSelectsEnlace();
-            renderizarListaEnlaces();
-            cargarPreferenciasTema();
-
-            localStorage.removeItem('depto_activo_actual');
-            regresarAlHome();
         };
 
-        function guardarProveedoresEnStorage() {
-            localStorage.setItem('mis_proveedores_clave', JSON.stringify(listaProveedores));
-        }
-
-        function actualizarEstadisticasDashboard() {
-            let statTot = document.getElementById('statTotalFacturas');
-            if (statTot) statTot.textContent = listaDeFacturas.length;
-
-            let pendientes = listaDeFacturas.filter(f => f.estado === 'Pendiente').length;
-            let statPend = document.getElementById('statPendientes');
-            if (statPend) statPend.textContent = pendientes;
-
-            let statCot = document.getElementById('statCotizaciones');
-            if (statCot) statCot.textContent = listaCotizaciones.length;
-
-            let statProv = document.getElementById('statProveedores');
-            if (statProv) statProv.textContent = listaProveedores.length;
-        }
-
-        function alternarModoOscuro() {
+        window.alternarModoOscuro = function() {
             document.body.classList.toggle('dark-mode');
             let esOscuro = document.body.classList.contains('dark-mode');
             
@@ -1151,15 +1142,14 @@
                 iconoHome.textContent = esOscuro ? '☀️' : '🌙';
                 textoHome.textContent = esOscuro ? 'Modo Claro' : 'Modo Oscuro';
             }
-            
             localStorage.setItem('modo_oscuro_activo', esOscuro);
-        }
+        };
 
-        function cambiarColorSidebar(colorHex) {
-            ajustarColorSidebarSeguro(colorHex);
-        }
+        window.cambiarColorSidebar = function(colorHex) {
+            window.ajustarColorSidebarSeguro(colorHex);
+        };
 
-        function cargarPreferenciasTema() {
+        window.cargarPreferenciasTema = function() {
             let modoOscuroGuardado = localStorage.getItem('modo_oscuro_activo') === 'true';
             if (modoOscuroGuardado) {
                 document.body.classList.add('dark-mode');
@@ -1174,12 +1164,11 @@
                     textoHome.textContent = 'Modo Claro';
                 }
             }
-
             let colorSidebarGuardado = localStorage.getItem('sidebar_color') || '#4a0410';
-            ajustarColorSidebarSeguro(colorSidebarGuardado);
-        }
+            window.ajustarColorSidebarSeguro(colorSidebarGuardado);
+        };
 
-        function cambiarPestana(idPestana) {
+        window.cambiarPestana = function(idPestana) {
             document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
             document.querySelectorAll('.btn-pestana').forEach(b => b.classList.remove('activa'));
 
@@ -1191,67 +1180,58 @@
             if (idPestana === 'pantallaDash') {
                 if (document.getElementById('btnTabDash')) document.getElementById('btnTabDash').classList.add('activa');
                 titulo.textContent = "Dashboard General (CxP)";
-                actualizarEstadisticasDashboard();
+                window.actualizarEstadisticasDashboard();
             } else if (idPestana === 'pantallaCalc') {
                 if (document.getElementById('btnTabCalc')) document.getElementById('btnTabCalc').classList.add('activa');
                 titulo.textContent = "Calculadora Contable";
             } else if (idPestana === 'pantallaLista') {
                 if (document.getElementById('btnTabLista')) document.getElementById('btnTabLista').classList.add('activa');
                 titulo.textContent = "Historial de Facturas (CxP)";
-                actualizarPantallaListaVisual();
+                window.actualizarPantallaListaVisual();
             } else if (idPestana === 'pantallaCot') {
                 if (document.getElementById('btnTabCot')) document.getElementById('btnTabCot').classList.add('activa');
                 titulo.textContent = "Historial de Cotizaciones";
-                actualizarPantallaCotizacionesVisual();
+                window.actualizarPantallaCotizacionesVisual();
             } else if (idPestana === 'pantallaEnlace') {
                 if (document.getElementById('btnTabEnlace')) document.getElementById('btnTabEnlace').classList.add('activa');
                 titulo.textContent = "Enlazar Cotización y Factura";
-                cargarSelectsEnlace();
-                renderizarListaEnlaces();
+                window.cargarSelectsEnlace();
+                window.renderizarListaEnlaces();
             } else if (idPestana === 'pantallaProv' || idPestana === 'pantallaDetalleProv') {
                 if (document.getElementById('btnTabProv')) document.getElementById('btnTabProv').classList.add('activa');
                 titulo.textContent = idPestana === 'pantallaProv' ? "Directorio de Proveedores (CxP)" : "Detalle del Proveedor";
-                if (idPestana === 'pantallaProv') renderizarTablaProveedores();
+                if (idPestana === 'pantallaProv') window.renderizarTablaProveedores();
             }
 
             let barra = document.getElementById('barraPestanas');
-            if (barra && barra.classList.contains('abierta')) {
-                barra.classList.remove('abierta');
-            }
-        }
+            if (barra && barra.classList.contains('abierta')) barra.classList.remove('abierta');
+        };
 
-        function cambiarModoCalculadora() {
+        window.cambiarModoCalculadora = function() {
             let tipo = document.getElementById('tipoDocumentoCalc').value;
             let lblNumDoc = document.getElementById('lblNumDoc');
-            
-            if (tipo === 'Cotizacion') {
-                lblNumDoc.textContent = "Número de Cotización (Opcional)";
-            } else {
-                lblNumDoc.textContent = "Número de Factura *";
-            }
-        }
+            if (tipo === 'Cotizacion') lblNumDoc.textContent = "Número de Cotización (Opcional)";
+            else lblNumDoc.textContent = "Número de Factura *";
+        };
 
-        function cargarDatalistProveedores() {
+        window.cargarDatalistProveedores = function() {
             let datalist = document.getElementById('historialProveedores');
             if (!datalist) return;
             datalist.innerHTML = "";
-            listaProveedores.forEach(prov => {
+            window.listaProveedores.forEach(prov => {
                 let option = document.createElement('option');
                 option.value = prov.nombre;
                 datalist.appendChild(option);
             });
-        }
+        };
 
-        function registrarNuevoProveedor() {
+        window.registrarNuevoProveedor = async function() {
             let nombreInput = document.getElementById('nuevoProvNombre');
             let nombre = nombreInput.value.trim();
 
-            if (nombre === "") {
-                alert("Por favor escribe el nombre del proveedor.");
-                return;
-            }
+            if (nombre === "") { alert("Por favor escribe el nombre del proveedor."); return; }
 
-            if (listaProveedores.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
+            if (window.listaProveedores.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
                 alert("Este proveedor ya se encuentra registrado.");
                 return;
             }
@@ -1265,28 +1245,23 @@
                 direccion: document.getElementById('nuevoProvDireccion').value.trim()
             };
 
-            listaProveedores.push(nuevoProv);
-            guardarProveedoresEnStorage();
+            await addDoc(collection(db, "proveedores"), nuevoProv);
 
             nombreInput.value = "";
             document.getElementById('nuevoProvRif').value = "";
             document.getElementById('nuevoProvTelefono').value = "";
             document.getElementById('nuevoProvEmail').value = "";
             document.getElementById('nuevoProvDireccion').value = "";
+        };
 
-            cargarDatalistProveedores();
-            renderizarTablaProveedores();
-            actualizarEstadisticasDashboard();
-        }
-
-        function renderizarTablaProveedores() {
+        window.renderizarTablaProveedores = function() {
             let tbody = document.getElementById('cuerpoTablaProveedores');
             if (!tbody) return;
             let busquedaInput = document.getElementById('buscarProvInput');
             let busqueda = busquedaInput ? busquedaInput.value.toLowerCase() : "";
             tbody.innerHTML = "";
 
-            let filtrados = listaProveedores.filter(p => 
+            let filtrados = window.listaProveedores.filter(p => 
                 p.nombre.toLowerCase().includes(busqueda) || 
                 (p.rif && p.rif.toLowerCase().includes(busqueda))
             );
@@ -1300,79 +1275,61 @@
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>
-                        <span class="enlace-proveedor" onclick="verDetalleProveedor(${prov.id})">${escapeHtml(prov.nombre)}</span>
+                        <span class="enlace-proveedor" onclick="verDetalleProveedor('${prov.firebaseId}')">${window.escapeHtml(prov.nombre)}</span>
                     </td>
-                    <td>${escapeHtml(prov.rif) || 'N/A'}</td>
-                    <td>${escapeHtml(prov.telefono) || 'N/A'}</td>
+                    <td>${window.escapeHtml(prov.rif) || 'N/A'}</td>
+                    <td>${window.escapeHtml(prov.telefono) || 'N/A'}</td>
                     <td style="text-align: right;">
-                        <button class="secundario" style="padding: 4px 8px; font-size: 12px; margin-right: 4px;" onclick="verDetalleProveedor(${prov.id})">Editar</button>
-                        <button class="btn-eliminar-unica" onclick="eliminarProveedor(${prov.id})">Borrar</button>
+                        <button class="secundario" style="padding: 4px 8px; font-size: 12px; margin-right: 4px;" onclick="verDetalleProveedor('${prov.firebaseId}')">Editar</button>
+                        <button class="btn-eliminar-unica" onclick="eliminarProveedor('${prov.firebaseId}')">Borrar</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
-        }
+        };
 
-        function verDetalleProveedor(id) {
-            let prov = listaProveedores.find(p => p.id === id);
+        window.verDetalleProveedor = function(firebaseId) {
+            let prov = window.listaProveedores.find(p => p.firebaseId === firebaseId);
             if (!prov) return;
 
-            document.getElementById('editProvId').value = prov.id;
+            document.getElementById('editProvId').value = prov.firebaseId;
             document.getElementById('editProvNombre').value = prov.nombre;
             document.getElementById('editProvRif').value = prov.rif || '';
             document.getElementById('editProvTelefono').value = prov.telefono || '';
             document.getElementById('editProvEmail').value = prov.email || '';
             document.getElementById('editProvDireccion').value = prov.direccion || '';
 
-            renderizarFacturasDeProveedor(prov.id);
-            cambiarPestana('pantallaDetalleProv');
-        }
+            window.renderizarFacturasDeProveedor(prov.id);
+            window.cambiarPestana('pantallaDetalleProv');
+        };
 
-        function guardarCambiosProveedor() {
-            let id = parseInt(document.getElementById('editProvId').value);
-            let prov = listaProveedores.find(p => p.id === id);
-
+        window.guardarCambiosProveedor = async function() {
+            let firebaseId = document.getElementById('editProvId').value;
+            let prov = window.listaProveedores.find(p => p.firebaseId === firebaseId);
             if (!prov) return;
 
             let nuevoNombre = document.getElementById('editProvNombre').value.trim();
-            if (nuevoNombre === "") {
-                alert("El nombre del proveedor no puede estar vacío.");
-                return;
-            }
+            if (nuevoNombre === "") { alert("El nombre no puede estar vacío."); return; }
 
-            prov.nombre = nuevoNombre;
-            prov.rif = document.getElementById('editProvRif').value.trim();
-            prov.telefono = document.getElementById('editProvTelefono').value.trim();
-            prov.email = document.getElementById('editProvEmail').value.trim();
-            prov.direccion = document.getElementById('editProvDireccion').value.trim();
-
-            listaDeFacturas.forEach(f => {
-                if (f.proveedorId === id) {
-                    f.proveedor = nuevoNombre;
-                }
+            let provRef = doc(db, "proveedores", firebaseId);
+            await updateDoc(provRef, {
+                nombre: nuevoNombre,
+                rif: document.getElementById('editProvRif').value.trim(),
+                telefono: document.getElementById('editProvTelefono').value.trim(),
+                email: document.getElementById('editProvEmail').value.trim(),
+                direccion: document.getElementById('editProvDireccion').value.trim()
             });
-            localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
 
-            listaCotizaciones.forEach(c => {
-                if (c.proveedorId === id) {
-                    c.proveedor = nuevoNombre;
-                }
-            });
-            localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
+            alert("Proveedor actualizado correctamente.");
+            window.cambiarPestana('pantallaProv');
+        };
 
-            guardarProveedoresEnStorage();
-            cargarDatalistProveedores();
-            alert("Información del proveedor actualizada correctamente.");
-            cambiarPestana('pantallaProv');
-        }
-
-        function renderizarFacturasDeProveedor(proveedorId) {
+        window.renderizarFacturasDeProveedor = function(proveedorNumericId) {
             let contenedor = document.getElementById('contenedorFacturasProveedor');
             if (!contenedor) return;
             contenedor.innerHTML = "";
 
-            let facturasProv = listaDeFacturas.filter(f => f.proveedorId === proveedorId);
-
+            let facturasProv = window.listaDeFacturas.filter(f => f.proveedorId === proveedorNumericId);
             if (facturasProv.length === 0) {
                 contenedor.innerHTML = "<p style='color: var(--text-secondary);'>No hay facturas registradas para este proveedor.</p>";
                 return;
@@ -1380,76 +1337,31 @@
 
             facturasProv.forEach(factura => {
                 let div = document.createElement('div');
-                div.className = `fila-factura fila-${escapeHtml(factura.estado)}`;
-                
-                let fechaTexto = factura.fechaCreacion ? factura.fechaCreacion : 'Fecha no registrada';
-
+                div.className = `fila-factura fila-${window.escapeHtml(factura.estado)}`;
                 div.innerHTML = `
                     <div class="fila-encabezado">
                         <div>
-                            <span style="font-size: 15px; font-weight: 600;">Factura N° ${escapeHtml(factura.nro || 'S/N')}</span> 
-                            <span style="color: var(--text-secondary);">| Control: ${escapeHtml(factura.control)}</span>
+                            <span style="font-size: 15px; font-weight: 600;">Factura N° ${window.escapeHtml(factura.nro || 'S/N')}</span> 
+                            <span style="color: var(--text-secondary);">| Control: ${window.escapeHtml(factura.control)}</span>
                         </div>
-                        <span class="badge-estado estado-${escapeHtml(factura.estado)}">${escapeHtml(factura.estado)}</span>
+                        <span class="badge-estado estado-${window.escapeHtml(factura.estado)}">${window.escapeHtml(factura.estado)}</span>
                     </div>
-
-                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                        <span>Orden de Compra: <strong>${escapeHtml(factura.ordenCompra) || 'No especificada'}</strong></span>
-                        <span style="color: var(--text-secondary); font-style: italic;">Creada: ${escapeHtml(fechaTexto)}</span>
-                    </div>
-
                     <div class="desglose-impuestos">
-                        <div class="item-desglose">
-                            <span>Monto Base</span>
-                            <strong>${escapeHtml(factura.moneda)}${factura.base}</strong>
-                        </div>
-                        ${parseFloat(factura.tasaIva) > 0 ? `
-                        <div class="item-desglose">
-                            <span>IVA (+${factura.tasaIva}%)</span>
-                            <strong class="monto-suma">+${escapeHtml(factura.moneda)}${factura.montoIva}</strong>
-                        </div>` : ''}
-                        ${parseFloat(factura.tasaRetIva) > 0 ? `
-                        <div class="item-desglose">
-                            <span>Ret. IVA (-${factura.tasaRetIva}%)</span>
-                            <strong class="monto-resta">-${escapeHtml(factura.moneda)}${factura.montoRetIva}</strong>
-                        </div>` : ''}
-                        ${parseFloat(factura.tasaRetIslr) > 0 ? `
-                        <div class="item-desglose">
-                            <span>Ret. ISLR (-${factura.tasaRetIslr}%)</span>
-                            <strong class="monto-resta">-${escapeHtml(factura.moneda)}${factura.montoRetIslr}</strong>
-                        </div>` : ''}
-                        <div class="item-desglose">
-                            <span>Neto A Pagar</span>
-                            <strong style="color: var(--primary); font-size: 13px;">${escapeHtml(factura.moneda)}${factura.neto}</strong>
-                        </div>
+                        <div class="item-desglose"><span>Base</span><strong>${window.escapeHtml(factura.moneda)}${factura.base}</strong></div>
+                        <div class="item-desglose"><span>Neto</span><strong style="color: var(--primary);">${window.escapeHtml(factura.moneda)}${factura.neto}</strong></div>
                     </div>
                 `;
                 contenedor.appendChild(div);
             });
-        }
+        };
 
-        function eliminarProveedor(id) {
-            let prov = listaProveedores.find(p => p.id === id);
-            if (!prov) return;
-
-            let facturasAsociadas = listaDeFacturas.filter(f => f.proveedorId === id);
-            let cotizacionesAsociadas = listaCotizaciones.filter(c => c.proveedorId === id);
-            let mensajeConfirmacion = `¿Deseas eliminar a "${prov.nombre}" del directorio?`;
-            
-            if (facturasAsociadas.length > 0 || cotizacionesAsociadas.length > 0) {
-                mensajeConfirmacion += `\n\nAdvertencia: Tiene registros asociados.`;
+        window.eliminarProveedor = async function(firebaseId) {
+            if (confirm("¿Deseas eliminar este proveedor?")) {
+                await deleteDoc(doc(db, "proveedores", firebaseId));
             }
+        };
 
-            if (confirm(mensajeConfirmacion)) {
-                listaProveedores = listaProveedores.filter(p => p.id !== id);
-                guardarProveedoresEnStorage();
-                cargarDatalistProveedores();
-                renderizarTablaProveedores();
-                actualizarEstadisticasDashboard();
-            }
-        }
-
-        function agregarDocumentoALista() {
+        window.agregarDocumentoALista = async function() {
             let tipoDoc = document.getElementById('tipoDocumentoCalc').value;
             let provNombre = document.getElementById('nombreProveedor').value.trim();
             let numero = document.getElementById('numFactura').value.trim();
@@ -1458,17 +1370,18 @@
             let base = parseFloat(document.getElementById('montoBase').value) || 0;
             let moneda = document.getElementById('tipoMoneda').value;
 
-            if (provNombre === "") { alert("Por favor escribe el nombre del proveedor."); return; }
-            if (tipoDoc === 'Factura' && numero === "") { alert("Por favor escribe el número de factura."); return; }
+            if (provNombre === "") { alert("Escribe el nombre del proveedor."); return; }
+            if (tipoDoc === 'Factura' && numero === "") { alert("Escribe el número de factura."); return; }
 
-            let provExistente = listaProveedores.find(p => p.nombre.toLowerCase() === provNombre.toLowerCase());
+            let provExistente = window.listaProveedores.find(p => p.nombre.toLowerCase() === provNombre.toLowerCase());
+            let provNumericId = provExistente ? provExistente.id : Date.now();
             
             if (!provExistente) {
-                provExistente = { id: Date.now(), nombre: provNombre, rif: '', telefono: '', email: '', direccion: '' };
-                listaProveedores.push(provExistente);
-                guardarProveedoresEnStorage();
-                cargarDatalistProveedores();
-                renderizarTablaProveedores();
+                await addDoc(collection(db, "proveedores"), {
+                    id: provNumericId,
+                    nombre: provNombre,
+                    rif: '', telefono: '', email: '', direccion: ''
+                });
             }
 
             let ahora = new Date();
@@ -1483,77 +1396,42 @@
             let retIslr = base * (tasaRetIslr / 100);
             let neto = (base + iva) - (retIva + retIslr);
 
+            let datosDoc = {
+                proveedorId: provNumericId,
+                proveedor: provNombre,
+                nro: numero || "S/N",
+                control: control || "N/A",
+                ordenCompra: ordenCompra || "",
+                moneda: moneda,
+                base: base.toFixed(2),
+                tasaIva: tasaIva,
+                montoIva: iva.toFixed(2),
+                tasaRetIva: tasaRetIva,
+                montoRetIva: retIva.toFixed(2),
+                tasaRetIslr: tasaRetIslr,
+                montoRetIslr: retIslr.toFixed(2),
+                neto: neto.toFixed(2),
+                estado: "Pendiente",
+                nota: "",
+                fechaCreacion: fechaFormateada
+            };
+
             if (tipoDoc === 'Cotizacion') {
-                let nuevaCot = {
-                    id: Date.now(),
-                    proveedorId: provExistente.id,
-                    proveedor: provExistente.nombre,
-                    nro: numero || "S/N",
-                    control: control || "N/A",
-                    ordenCompra: ordenCompra || "",
-                    moneda: moneda,
-                    base: base.toFixed(2),
-                    tasaIva: tasaIva,
-                    montoIva: iva.toFixed(2),
-                    tasaRetIva: tasaRetIva,
-                    montoRetIva: retIva.toFixed(2),
-                    tasaRetIslr: tasaRetIslr,
-                    montoRetIslr: retIslr.toFixed(2),
-                    neto: neto.toFixed(2),
-                    estado: "Pendiente",
-                    nota: "",
-                    fechaCreacion: fechaFormateada
-                };
-
-                listaCotizaciones.push(nuevaCot);
-                localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
-
-                document.getElementById('nombreProveedor').value = "";
-                document.getElementById('numFactura').value = "";
-                document.getElementById('numControl').value = "";
-                document.getElementById('ordenCompra').value = "";
-                document.getElementById('montoBase').value = "0";
-
-                actualizarEstadisticasDashboard();
-                cambiarPestana('pantallaCot');
-
+                await addDoc(collection(db, "cotizaciones"), datosDoc);
+                window.cambiarPestana('pantallaCot');
             } else {
-                let nuevaFactura = {
-                    id: Date.now(),
-                    proveedorId: provExistente.id,
-                    proveedor: provExistente.nombre,
-                    nro: numero,
-                    control: control || "N/A",
-                    ordenCompra: ordenCompra || "",
-                    moneda: moneda,
-                    base: base.toFixed(2),
-                    tasaIva: tasaIva,
-                    montoIva: iva.toFixed(2),
-                    tasaRetIva: tasaRetIva,
-                    montoRetIva: retIva.toFixed(2),
-                    tasaRetIslr: tasaRetIslr,
-                    montoRetIslr: retIslr.toFixed(2),
-                    neto: neto.toFixed(2),
-                    estado: "Pendiente",
-                    nota: "",
-                    fechaCreacion: fechaFormateada
-                };
-
-                listaDeFacturas.push(nuevaFactura);
-                localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
-
-                document.getElementById('nombreProveedor').value = "";
-                document.getElementById('numFactura').value = "";
-                document.getElementById('numControl').value = "";
-                document.getElementById('ordenCompra').value = "";
-                document.getElementById('montoBase').value = "0";
-
-                actualizarEstadisticasDashboard();
-                cambiarPestana('pantallaLista');
+                await addDoc(collection(db, "facturas"), datosDoc);
+                window.cambiarPestana('pantallaLista');
             }
-        }
 
-        function actualizarPantallaListaVisual(listaAProcesar = listaDeFacturas) {
+            document.getElementById('nombreProveedor').value = "";
+            document.getElementById('numFactura').value = "";
+            document.getElementById('numControl').value = "";
+            document.getElementById('ordenCompra').value = "";
+            document.getElementById('montoBase').value = "0";
+        };
+
+        window.actualizarPantallaListaVisual = function(listaAProcesar = window.listaDeFacturas) {
             let contenedor = document.getElementById('contenedorLista');
             if (!contenedor) return;
             contenedor.innerHTML = "";
@@ -1565,66 +1443,35 @@
 
             listaAProcesar.forEach(factura => {
                 let div = document.createElement('div');
-                div.className = `fila-factura fila-${escapeHtml(factura.estado)}`;
-                
-                let fechaTexto = factura.fechaCreacion ? factura.fechaCreacion : 'Fecha no registrada';
-
+                div.className = `fila-factura fila-${window.escapeHtml(factura.estado)}`;
                 div.innerHTML = `
                     <div class="fila-encabezado">
                         <div>
-                            <span style="font-size: 16px; font-weight: 700; color: var(--text-primary);">${escapeHtml(factura.proveedor)}</span> <br>
-                            <span style="color: var(--text-secondary);">Factura N° ${escapeHtml(factura.nro)} | Control N° ${escapeHtml(factura.control)}</span>
+                            <span style="font-size: 16px; font-weight: 700; color: var(--text-primary);">${window.escapeHtml(factura.proveedor)}</span> <br>
+                            <span style="color: var(--text-secondary);">Factura N° ${window.escapeHtml(factura.nro)} | Control N° ${window.escapeHtml(factura.control)}</span>
                         </div>
                         <div class="controles-fila">
-                            <button class="badge-estado estado-${escapeHtml(factura.estado)}" onclick="rotarEstadoFactura(${factura.id})">
-                                ${escapeHtml(factura.estado)}
+                            <button class="badge-estado estado-${window.escapeHtml(factura.estado)}" onclick="rotarEstadoFactura('${factura.firebaseId}', '${factura.estado}')">
+                                ${window.escapeHtml(factura.estado)}
                             </button>
-                            <button class="btn-eliminar-unica" onclick="eliminarFactura(${factura.id})">Borrar</button>
+                            <button class="btn-eliminar-unica" onclick="eliminarFactura('${factura.firebaseId}')">Borrar</button>
                         </div>
                     </div>
-
-                    <div style="font-size: 12px; color: var(--text-secondary); font-style: italic; display: flex; align-items: center; gap: 6px;">
-                        <span>📅 Creada el: <strong>${escapeHtml(fechaTexto)}</strong></span>
-                    </div>
-
+                    <div style="font-size: 12px; color: var(--text-secondary);">📅 Creada: <strong>${window.escapeHtml(factura.fechaCreacion || 'N/A')}</strong></div>
                     <div class="desglose-impuestos">
-                        <div class="item-desglose">
-                            <span>Monto Base</span>
-                            <strong>${escapeHtml(factura.moneda)}${factura.base}</strong>
-                        </div>
-                        ${parseFloat(factura.tasaIva) > 0 ? `
-                        <div class="item-desglose">
-                            <span>IVA (+${factura.tasaIva}%)</span>
-                            <strong class="monto-suma">+${escapeHtml(factura.moneda)}${factura.montoIva}</strong>
-                        </div>` : ''}
-                        ${parseFloat(factura.tasaRetIva) > 0 ? `
-                        <div class="item-desglose">
-                            <span>Ret. IVA (-${factura.tasaRetIva}%)</span>
-                            <strong class="monto-resta">-${escapeHtml(factura.moneda)}${factura.montoRetIva}</strong>
-                        </div>` : ''}
-                        ${parseFloat(factura.tasaRetIslr) > 0 ? `
-                        <div class="item-desglose">
-                            <span>Ret. ISLR (-${factura.tasaRetIslr}%)</span>
-                            <strong class="monto-resta">-${escapeHtml(factura.moneda)}${factura.montoRetIslr}</strong>
-                        </div>` : ''}
-                        <div class="item-desglose">
-                            <span>Neto A Pagar</span>
-                            <strong style="color: var(--primary); font-size: 13px;">${escapeHtml(factura.moneda)}${factura.neto}</strong>
-                        </div>
+                        <div class="item-desglose"><span>Base</span><strong>${window.escapeHtml(factura.moneda)}${factura.base}</strong></div>
+                        <div class="item-desglose"><span>Neto</span><strong style="color: var(--primary);">${window.escapeHtml(factura.moneda)}${factura.neto}</strong></div>
                     </div>
-
                     <div class="inputs-factura-extra">
-                        <input type="text" class="input-oc-lista" placeholder="Orden de compra..." 
-                            value="${escapeHtml(factura.ordenCompra || '')}" onchange="actualizarOrdenCompra(${factura.id}, this.value)">
-                        <input type="text" class="input-nota-lista" placeholder="Escribir nota u observación..." 
-                            value="${escapeHtml(factura.nota || '')}" onchange="actualizarNota(${factura.id}, this.value)">
+                        <input type="text" class="input-oc-lista" placeholder="Orden de compra..." value="${window.escapeHtml(factura.ordenCompra || '')}" onchange="actualizarOrdenCompra('${factura.firebaseId}', this.value)">
+                        <input type="text" class="input-nota-lista" placeholder="Nota..." value="${window.escapeHtml(factura.nota || '')}" onchange="actualizarNota('${factura.firebaseId}', this.value)">
                     </div>
                 `;
                 contenedor.appendChild(div);
             });
-        }
+        };
 
-        function actualizarPantallaCotizacionesVisual(listaAProcesar = listaCotizaciones) {
+        window.actualizarPantallaCotizacionesVisual = function(listaAProcesar = window.listaCotizaciones) {
             let contenedor = document.getElementById('contenedorListaCot');
             if (!contenedor) return;
             contenedor.innerHTML = "";
@@ -1637,305 +1484,151 @@
             listaAProcesar.forEach(cot => {
                 let div = document.createElement('div');
                 let estadoSeguro = cot.estado || 'Pendiente';
-                div.className = `fila-factura fila-${escapeHtml(estadoSeguro)}`;
-                
-                let fechaTexto = cot.fechaCreacion ? cot.fechaCreacion : 'Fecha no registrada';
-
+                div.className = `fila-factura fila-${window.escapeHtml(estadoSeguro)}`;
                 div.innerHTML = `
                     <div class="fila-encabezado">
                         <div>
-                            <span style="font-size: 16px; font-weight: 700; color: var(--text-primary);">${escapeHtml(cot.proveedor)}</span> <br>
-                            <span style="color: var(--text-secondary);">Cotización N° ${escapeHtml(cot.nro)} | Control N° ${escapeHtml(cot.control)}</span>
+                            <span style="font-size: 16px; font-weight: 700; color: var(--text-primary);">${window.escapeHtml(cot.proveedor)}</span> <br>
+                            <span style="color: var(--text-secondary);">Cotización N° ${window.escapeHtml(cot.nro)}</span>
                         </div>
                         <div class="controles-fila">
-                            <button class="badge-estado estado-${escapeHtml(estadoSeguro)}" onclick="rotarEstadoCotizacion(${cot.id})">
-                                ${escapeHtml(estadoSeguro)}
+                            <button class="badge-estado estado-${window.escapeHtml(estadoSeguro)}" onclick="rotarEstadoCotizacion('${cot.firebaseId}', '${estadoSeguro}')">
+                                ${window.escapeHtml(estadoSeguro)}
                             </button>
-                            <button class="btn-eliminar-unica" onclick="eliminarCotizacion(${cot.id})">Borrar</button>
+                            <button class="btn-eliminar-unica" onclick="eliminarCotizacion('${cot.firebaseId}')">Borrar</button>
                         </div>
                     </div>
-
-                    <div style="font-size: 12px; color: var(--text-secondary); font-style: italic; display: flex; align-items: center; gap: 6px;">
-                        <span>📅 Creada el: <strong>${escapeHtml(fechaTexto)}</strong></span>
-                    </div>
-
                     <div class="desglose-impuestos">
-                        <div class="item-desglose">
-                            <span>Monto Base</span>
-                            <strong>${escapeHtml(cot.moneda)}${cot.base}</strong>
-                        </div>
-                        ${parseFloat(cot.tasaIva) > 0 ? `
-                        <div class="item-desglose">
-                            <span>IVA (+${cot.tasaIva}%)</span>
-                            <strong class="monto-suma">+${escapeHtml(cot.moneda)}${cot.montoIva}</strong>
-                        </div>` : ''}
-                        ${parseFloat(cot.tasaRetIva) > 0 ? `
-                        <div class="item-desglose">
-                            <span>Ret. IVA (-${cot.tasaRetIva}%)</span>
-                            <strong class="monto-resta">-${escapeHtml(cot.moneda)}${cot.montoRetIva}</strong>
-                        </div>` : ''}
-                        ${parseFloat(cot.tasaRetIslr) > 0 ? `
-                        <div class="item-desglose">
-                            <span>Ret. ISLR (-${cot.tasaRetIslr}%)</span>
-                            <strong class="monto-resta">-${escapeHtml(cot.moneda)}${cot.montoRetIslr}</strong>
-                        </div>` : ''}
-                        <div class="item-desglose">
-                            <span>Neto A Pagar</span>
-                            <strong style="color: var(--primary); font-size: 13px;">${escapeHtml(cot.moneda)}${cot.neto}</strong>
-                        </div>
-                    </div>
-
-                    <div class="inputs-factura-extra">
-                        <input type="text" class="input-oc-lista" placeholder="Referencia..." 
-                            value="${escapeHtml(cot.ordenCompra || '')}" onchange="actualizarOrdenCompraCot(${cot.id}, this.value)">
-                        <input type="text" class="input-nota-lista" placeholder="Nota de cotización..." 
-                            value="${escapeHtml(cot.nota || '')}" onchange="actualizarNotaCot(${cot.id}, this.value)">
+                        <div class="item-desglose"><span>Base</span><strong>${window.escapeHtml(cot.moneda)}${cot.base}</strong></div>
+                        <div class="item-desglose"><span>Neto</span><strong style="color: var(--primary);">${window.escapeHtml(cot.moneda)}${cot.neto}</strong></div>
                     </div>
                 `;
                 contenedor.appendChild(div);
             });
-        }
+        };
 
-        function cargarSelectsEnlace() {
+        window.cargarSelectsEnlace = function() {
             let selectCot = document.getElementById('selectAsociarCot');
             let selectFac = document.getElementById('selectAsociarFac');
             if (!selectCot || !selectFac) return;
 
-            selectCot.innerHTML = "";
-            selectFac.innerHTML = "";
+            selectCot.innerHTML = window.listaCotizaciones.length === 0 ? `<option value="">No hay cotizaciones</option>` : "";
+            selectFac.innerHTML = window.listaDeFacturas.length === 0 ? `<option value="">No hay facturas</option>` : "";
 
-            if (listaCotizaciones.length === 0) {
-                selectCot.innerHTML = `<option value="">No hay cotizaciones disponibles</option>`;
-            } else {
-                listaCotizaciones.forEach(c => {
-                    let opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = `${c.proveedor} - Cot. N° ${c.nro} (${c.moneda}${c.neto})`;
-                    selectCot.appendChild(opt);
-                });
-            }
+            window.listaCotizaciones.forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c.firebaseId;
+                opt.textContent = `${c.proveedor} - Cot. N° ${c.nro} (${c.moneda}${c.neto})`;
+                selectCot.appendChild(opt);
+            });
 
-            if (listaDeFacturas.length === 0) {
-                selectFac.innerHTML = `<option value="">No hay facturas disponibles</option>`;
-            } else {
-                listaDeFacturas.forEach(f => {
-                    let opt = document.createElement('option');
-                    opt.value = f.id;
-                    opt.textContent = `${f.proveedor} - Fac. N° ${f.nro} (${f.moneda}${f.neto})`;
-                    selectFac.appendChild(opt);
-                });
-            }
-        }
+            window.listaDeFacturas.forEach(f => {
+                let opt = document.createElement('option');
+                opt.value = f.firebaseId;
+                opt.textContent = `${f.proveedor} - Fac. N° ${f.nro} (${f.moneda}${f.neto})`;
+                selectFac.appendChild(opt);
+            });
+        };
 
-        function guardarEnlaceCotFac() {
+        window.guardarEnlaceCotFac = async function() {
             let cotId = document.getElementById('selectAsociarCot').value;
             let facId = document.getElementById('selectAsociarFac').value;
+            if (!cotId || !facId) { alert("Selecciona una cotización y una factura."); return; }
 
-            if (!cotId || !facId || isNaN(cotId) || isNaN(facId)) {
-                alert("Por favor selecciona una cotización y una factura válidas para vincular.");
-                return;
-            }
-
-            let nuevoEnlace = {
-                id: Date.now(),
-                cotizacionId: parseInt(cotId),
-                facturaId: parseInt(facId)
-            };
-
-            listaEnlacesCotFac.push(nuevoEnlace);
-            localStorage.setItem('mis_enlaces_cot_fac', JSON.stringify(listaEnlacesCotFac));
-            renderizarListaEnlaces();
+            await addDoc(collection(db, "enlaces"), { cotizacionFirebaseId: cotId, facturaFirebaseId: facId });
             alert("Documentos vinculados correctamente.");
-        }
+        };
 
-        function renderizarListaEnlaces() {
+        window.renderizarListaEnlaces = function() {
             let contenedor = document.getElementById('contenedorListaEnlaces');
             if (!contenedor) return;
             contenedor.innerHTML = "";
 
-            if (listaEnlacesCotFac.length === 0) {
-                contenedor.innerHTML = "<p style='color: var(--text-secondary);'>No hay asociaciones registradas actualmente.</p>";
+            if (window.listaEnlacesCotFac.length === 0) {
+                contenedor.innerHTML = "<p style='color: var(--text-secondary);'>No hay asociaciones registradas.</p>";
                 return;
             }
 
-            listaEnlacesCotFac.forEach(enlace => {
-                let cot = listaCotizaciones.find(c => c.id === enlace.cotizacionId);
-                let fac = listaDeFacturas.find(f => f.id === enlace.facturaId);
+            window.listaEnlacesCotFac.forEach(enlace => {
+                let cot = window.listaCotizaciones.find(c => c.firebaseId === enlace.cotizacionFirebaseId);
+                let fac = window.listaDeFacturas.find(f => f.firebaseId === enlace.facturaFirebaseId);
 
                 let div = document.createElement('div');
                 div.className = "fila-factura";
                 div.style.borderLeft = "5px solid var(--primary)";
-
-                let cotTexto = cot ? `${escapeHtml(cot.proveedor)} - Cot. N° ${escapeHtml(cot.nro)} [${escapeHtml(cot.moneda)}${cot.neto}]` : 'Cotización eliminada';
-                let facTexto = fac ? `${escapeHtml(fac.proveedor)} - Fac. N° ${escapeHtml(fac.nro)} [${escapeHtml(fac.moneda)}${fac.neto}]` : 'Factura eliminada';
-
                 div.innerHTML = `
                     <div class="fila-encabezado">
-                        <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Relación de Control Contable</span>
-                        <button class="btn-eliminar-unica" onclick="eliminarEnlace(${enlace.id})">Desvincular</button>
+                        <span style="font-weight: 700;">Relación Contable</span>
+                        <button class="btn-eliminar-unica" onclick="eliminarEnlace('${enlace.firebaseId}')">Desvincular</button>
                     </div>
-                    <div class="tarjeta-enlace-grid">
-                        <div class="bloque-enlace-item">
-                            <span style="color: var(--text-secondary); display: block; font-weight: 600; margin-bottom: 2px;">COTIZACIÓN</span>
-                            <strong>${cotTexto}</strong>
-                        </div>
-                        <div class="separador-enlace">⇄</div>
-                        <div class="bloque-enlace-item">
-                            <span style="color: var(--text-secondary); display: block; font-weight: 600; margin-bottom: 2px;">FACTURA</span>
-                            <strong>${facTexto}</strong>
-                        </div>
-                    </div>
+                    <div>Cotización: <strong>${cot ? cot.proveedor + ' (' + cot.nro + ')' : 'Eliminada'}</strong> ⇄ Factura: <strong>${fac ? fac.proveedor + ' (' + fac.nro + ')' : 'Eliminada'}</strong></div>
                 `;
                 contenedor.appendChild(div);
             });
-        }
+        };
 
-        function eliminarEnlace(id) {
-            if (confirm("¿Deseas desvincular estos documentos?")) {
-                listaEnlacesCotFac = listaEnlacesCotFac.filter(e => e.id !== id);
-                localStorage.setItem('mis_enlaces_cot_fac', JSON.stringify(listaEnlacesCotFac));
-                renderizarListaEnlaces();
-            }
-        }
+        window.eliminarEnlace = async function(firebaseId) {
+            if (confirm("¿Desvincular documentos?")) await deleteDoc(doc(db, "enlaces", firebaseId));
+        };
 
-        function rotarEstadoFactura(id) {
-            let factura = listaDeFacturas.find(f => f.id === id);
-            if (!factura) return;
+        window.rotarEstadoFactura = async function(firebaseId, estadoActual) {
+            let nuevoEstado = estadoActual === "Pendiente" ? "Tesoreria" : (estadoActual === "Tesoreria" ? "Pagado" : "Pendiente");
+            await updateDoc(doc(db, "facturas", firebaseId), { estado: nuevoEstado });
+        };
 
-            if (factura.estado === "Pendiente") factura.estado = "Tesoreria";
-            else if (factura.estado === "Tesoreria") factura.estado = "Pagado";
-            else factura.estado = "Pendiente";
+        window.rotarEstadoCotizacion = async function(firebaseId, estadoActual) {
+            let nuevoEstado = estadoActual === "Pendiente" ? "Tesoreria" : (estadoActual === "Tesoreria" ? "Pagado" : "Pendiente");
+            await updateDoc(doc(db, "cotizaciones", firebaseId), { estado: nuevoEstado });
+        };
 
-            localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
-            actualizarEstadisticasDashboard();
-            filtrarFacturas();
-        }
+        window.actualizarNota = async function(firebaseId, texto) {
+            await updateDoc(doc(db, "facturas", firebaseId), { nota: texto });
+        };
 
-        function rotarEstadoCotizacion(id) {
-            let cot = listaCotizaciones.find(c => c.id === id);
-            if (!cot) return;
+        window.actualizarOrdenCompra = async function(firebaseId, texto) {
+            await updateDoc(doc(db, "facturas", firebaseId), { ordenCompra: texto });
+        };
 
-            if (!cot.estado || cot.estado === "Pendiente") cot.estado = "Tesoreria";
-            else if (cot.estado === "Tesoreria") cot.estado = "Pagado";
-            else cot.estado = "Pendiente";
+        window.filtrarFacturas = function() {
+            let busqueda = document.getElementById('inputBuscador').value.toLowerCase();
+            let filtradas = window.listaDeFacturas.filter(f => f.proveedor.toLowerCase().includes(busqueda) || f.nro.toLowerCase().includes(busqueda));
+            window.actualizarPantallaListaVisual(filtradas);
+        };
 
-            localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
-            actualizarEstadisticasDashboard();
-            filtrarCotizaciones();
-        }
+        window.filtrarCotizaciones = function() {
+            let busqueda = document.getElementById('inputBuscadorCot').value.toLowerCase();
+            let filtradas = window.listaCotizaciones.filter(c => c.proveedor.toLowerCase().includes(busqueda) || c.nro.toLowerCase().includes(busqueda));
+            window.actualizarPantallaCotizacionesVisual(filtradas);
+        };
 
-        function actualizarNota(id, texto) {
-            let factura = listaDeFacturas.find(f => f.id === id);
-            if (factura) {
-                factura.nota = texto;
-                localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
-            }
-        }
+        window.eliminarFactura = async function(firebaseId) {
+            if (confirm("¿Eliminar factura?")) await deleteDoc(doc(db, "facturas", firebaseId));
+        };
 
-        function actualizarOrdenCompra(id, texto) {
-            let factura = listaDeFacturas.find(f => f.id === id);
-            if (factura) {
-                factura.ordenCompra = texto;
-                localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
-            }
-        }
+        window.eliminarCotizacion = async function(firebaseId) {
+            if (confirm("¿Eliminar cotización?")) await deleteDoc(doc(db, "cotizaciones", firebaseId));
+        };
 
-        function actualizarNotaCot(id, texto) {
-            let cot = listaCotizaciones.find(c => c.id === id);
-            if (cot) {
-                cot.nota = texto;
-                localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
-            }
-        }
+        window.actualizarEstadisticasDashboard = function() {
+            let statTot = document.getElementById('statTotalFacturas');
+            if (statTot) statTot.textContent = window.listaDeFacturas.length;
 
-        function actualizarOrdenCompraCot(id, texto) {
-            let cot = listaCotizaciones.find(c => c.id === id);
-            if (cot) {
-                cot.ordenCompra = texto;
-                localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
-            }
-        }
+            let pendientes = window.listaDeFacturas.filter(f => f.estado === 'Pendiente').length;
+            let statPend = document.getElementById('statPendientes');
+            if (statPend) statPend.textContent = pendientes;
 
-        function filtrarFacturas() {
-            let inputBuscador = document.getElementById('inputBuscador');
-            if (!inputBuscador) return;
-            let busqueda = inputBuscador.value.toLowerCase();
-            let filtradas = listaDeFacturas.filter(f => 
-                f.proveedor.toLowerCase().includes(busqueda) || 
-                f.nro.toLowerCase().includes(busqueda) ||
-                (f.control && f.control.toLowerCase().includes(busqueda)) ||
-                (f.ordenCompra && f.ordenCompra.toLowerCase().includes(busqueda))
-            );
-            actualizarPantallaListaVisual(filtradas);
-        }
+            let statCot = document.getElementById('statCotizaciones');
+            if (statCot) statCot.textContent = window.listaCotizaciones.length;
 
-        function filtrarCotizaciones() {
-            let inputBuscador = document.getElementById('inputBuscadorCot');
-            if (!inputBuscador) return;
-            let busqueda = inputBuscador.value.toLowerCase();
-            let filtradas = listaCotizaciones.filter(c => 
-                c.proveedor.toLowerCase().includes(busqueda) || 
-                c.nro.toLowerCase().includes(busqueda) ||
-                (c.control && c.control.toLowerCase().includes(busqueda)) ||
-                (c.ordenCompra && c.ordenCompra.toLowerCase().includes(busqueda))
-            );
-            actualizarPantallaCotizacionesVisual(filtradas);
-        }
+            let statProv = document.getElementById('statProveedores');
+            if (statProv) statProv.textContent = window.listaProveedores.length;
+        };
 
-        function eliminarFactura(id) {
-            if (confirm("¿Deseas eliminar esta factura del historial?")) {
-                listaDeFacturas = listaDeFacturas.filter(f => f.id !== id);
-                localStorage.setItem('mis_facturas_clave', JSON.stringify(listaDeFacturas));
-                actualizarEstadisticasDashboard();
-                filtrarFacturas();
-            }
-        }
-
-        function eliminarCotizacion(id) {
-            if (confirm("¿Deseas eliminar esta cotización del historial?")) {
-                listaCotizaciones = listaCotizaciones.filter(c => c.id !== id);
-                localStorage.setItem('mis_cotizaciones_clave', JSON.stringify(listaCotizaciones));
-                actualizarEstadisticasDashboard();
-                filtrarCotizaciones();
-            }
-        }
-
-        function limpiarTodaLaMemoria() {
-            if (confirm("¿Seguro que deseas vaciar el historial de facturas?")) {
-                listaDeFacturas = [];
-                localStorage.removeItem('mis_facturas_clave');
-                actualizarEstadisticasDashboard();
-                actualizarPantallaListaVisual();
-            }
-        }
-
-        function limpiarCotizacionesMemoria() {
-            if (confirm("¿Seguro que deseas vaciar el historial de cotizaciones?")) {
-                listaCotizaciones = [];
-                localStorage.removeItem('mis_cotizaciones_clave');
-                actualizarEstadisticasDashboard();
-                actualizarPantallaCotizacionesVisual();
-            }
-        }
+        // Inicialización al cargar la ventana
+        window.onload = function() {
+            window.cargarPreferenciasTema();
+            window.regresarAlHome();
+        };
     </script>
-
-    <!-- ==================== CONFIGURACIÓN OFICIAL DE SUPABASE ==================== -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-      // REEMPLAZA ESTOS DOS DATOS CON LOS DE TU PROYECTO REAL DE SUPABASE
-      const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
-      const SUPABASE_KEY = "TU-ANON-KEY-PUBLICA";
-      
-      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-      // Ejemplo de escucha en tiempo real
-      supabase
-        .channel('cambios-contables')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'facturas' }, () => {
-            console.log("🔔 ¡Actualización detectada en la base de datos de Supabase!");
-        })
-        .subscribe();
-    </script>
-
 </body>
 </html>
