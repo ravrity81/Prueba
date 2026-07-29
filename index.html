@@ -689,7 +689,7 @@
 </head>
 <body>
 
-    <!-- ==================== PANTALLA PRINCIPAL: SELECCIÓN REDUCIDA (SOLO CXP) ==================== -->
+    <!-- ==================== PANTALLA PRINCIPAL ==================== -->
     <div id="pantallaHome">
         <div class="home-header-absolute">
             <button class="btn-modo-oscuro" onclick="alternarModoOscuro()" aria-label="Cambiar modo de pantalla">
@@ -714,7 +714,7 @@
     </div>
 
 
-    <!-- ==================== CONTENEDOR DE LA APLICACIÓN (DENTRO DE CXP) ==================== -->
+    <!-- ==================== CONTENEDOR DE LA APLICACIÓN ==================== -->
     <div id="appContenedor" class="app-contenedor oculto">
 
         <button class="btn-menu-movil" onclick="alternarMenuMovil()" aria-label="Abrir Menú">
@@ -1918,81 +1918,24 @@
             }
         }
     </script>
-<!-- CONECTOR OFICIAL DE SUPABASE -->
-<script src="https://jsdelivr.net"></script>
 
-<script>
-  // Conexión directa a tus tablas contables de la nube
-  const SUPABASE_URL = "https://supabase.co";
-  const SUPABASE_KEY = "sb_publishable_wfwqA12Gzc1W1Gs2PYdSjg_agP2i_bY";
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  // Escuchar la base de datos en tiempo real (Cualquier cambio refresca las pantallas)
-  supabase
-    .channel('cambios-contables')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'facturas' }, () => {
-        alert("🔔 ¡Historial de facturas actualizado en la nube!");
-        descargarDatosDeLaNube(); // Refresca las pantallas de todos los dispositivos conectados
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'proveedores' }, () => {
-        alert("🔔 ¡Directorio de proveedores actualizado en la nube!");
-        descargarDatosDeLaNube(); // Refresca las pantallas de todos los dispositivos conectados
-    })
-    .subscribe();
-
-  // 1. ESCUCHAR EL BOTÓN "GUARDAR REGISTRO" (Para Facturas / Cotizaciones)
-  document.addEventListener("DOMContentLoaded", () => {
-      const botones = document.querySelectorAll("button");
+    <!-- ==================== CONFIGURACIÓN OFICIAL DE SUPABASE ==================== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      // REEMPLAZA ESTOS DOS DATOS CON LOS DE TU PROYECTO REAL DE SUPABASE
+      const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
+      const SUPABASE_KEY = "TU-ANON-KEY-PUBLICA";
       
-      botones.forEach(boton => {
-          // Buscamos tus botones reales por el texto que tienen escrito en tu HTML
-          if (boton.innerText.includes("Guardar Registro")) {
-              boton.addEventListener("click", async () => {
-                  // Captura los datos de tus inputs (puedes ajustar las IDs si es necesario)
-                  const tipo = document.querySelector('input[type="radio"]:checked')?.value || "Factura (CxP)";
-                  const proveedor = document.querySelector('input[placeholder*="Proveedor"]')?.value || "Proveedor General";
-                  const monto = document.querySelector('input[placeholder*="Monto Base"]')?.value || "0";
+      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                  // Sube la información a internet para siempre
-                  await supabase.from('facturas').insert([{ 
-                      tipo: tipo, 
-                      proveedor: proveedor, 
-                      monto_base: parseFloat(monto) 
-                  }]);
-              });
-          }
-
-          // 2. ESCUCHAR EL BOTÓN "GUARDAR PROVEEDOR"
-          if (boton.innerText.includes("Guardar Proveedor")) {
-              boton.addEventListener("click", async () => {
-                  const nombre = document.querySelector('input[placeholder*="Razón Social"]')?.value || "Nuevo Proveedor";
-                  const rif = document.querySelector('input[placeholder*="RIF"]')?.value || "";
-
-                  // Sube el proveedor a internet para siempre
-                  await supabase.from('proveedores').insert([{ 
-                      nombre: nombre, 
-                      rif: rif 
-                  }]);
-              });
-          }
-      });
-  });
-
-  // 3. FUNCIÓN AUTOMÁTICA PARA BAJAR LOS DATOS DE INTERNET
-  async function descargarDatosDeLaNube() {
-      const { data: facturas } = await supabase.from('facturas').select('*');
-      const { data: proveedores } = await supabase.from('proveedores').select('*');
-
-      if (facturas) {
-          console.log("Datos de facturas en la nube listos para tus tablas:", facturas);
-          // Aquí puedes vincular las variables con las tablas visuales de tu HTML
-      }
-  }
-
-  // Ejecutar descarga inicial al abrir la página web
-  document.addEventListener("DOMContentLoaded", descargarDatosDeLaNube);
-</script>
+      // Ejemplo de escucha en tiempo real
+      supabase
+        .channel('cambios-contables')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'facturas' }, () => {
+            console.log("🔔 ¡Actualización detectada en la base de datos de Supabase!");
+        })
+        .subscribe();
+    </script>
 
 </body>
 </html>
-
