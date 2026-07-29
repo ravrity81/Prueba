@@ -1920,31 +1920,67 @@
     </script>
 </div> 
 
-<!-- >>> PEGA EL CÓDIGO AQUÍ (Líneas finales de tu archivo) <<< -->
+<!-- CONECTOR DE SUPABASE -->
 <script src="https://jsdelivr.net"></script>
+
 <script>
-    const SUPABASE_URL = "https://supabase.co";
-    const SUPABASE_KEY = "sb_publishable_wfwqA12Gzc1W1Gs2PYdSjg_agP2i_bY";
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const canalContable = supabase.channel('modulo-cxp');
+  // Conexión oficial usando tus llaves públicas
+  const SUPABASE_URL = "https://bimmfmpgbnzrtxjdciei.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_wfwqA12Gzc1W1Gs2PYdSjg_agP2i_bY";
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    canalContable
-        .on('broadcast', { event: 'nuevo-registro' }, (respuesta) => {
-            alert(`Notificación: Nuevo documento (${respuesta.payload.tipo}) - Proveedor: ${respuesta.payload.proveedor}.`);
-            if (typeof actualizarDashboard === "function") actualizarDashboard();
-        })
-        .subscribe();
+  // Unirse a la sala de contabilidad en vivo
+  const canalContable = supabase.channel('modulo-cxp', {
+    config: { broadcast: { self: true } } // Permite recibir confirmación propia
+  });
 
-    const botonGuardarRegistro = document.getElementById('btnGuardarRegistro') || document.querySelector('button');
-    if (botonGuardarRegistro) {
-        botonGuardarRegistro.addEventListener('click', () => {
-            canalContable.send({
-                type: 'broadcast',
-                event: 'nuevo-registro',
-                payload: { tipo: "Factura", proveedor: "Proveedor detectado", monto: "0" }
-            });
-        });
-    }
+  // A) ESCUCHAR: Qué pasa en el Dispositivo B cuando el A guarda algo
+  canalContable
+    .on('broadcast', { event: 'actualizar-pantalla' }, (respuesta) => {
+        console.log("¡Señal en vivo recibida!", respuesta.payload);
+        
+        // 1. Mensaje de alerta en la pantalla receptora
+        alert(`🔔 Movimiento detectado: Se registró una acción de tipo [${respuesta.payload.accion}].`);
+
+        // 2. FORZAR ACTUALIZACIÓN: Si tu código tiene funciones para pintar las tablas,
+        // pon sus nombres aquí adentro para que se vuelvan a ejecutar solas.
+    })
+    .subscribe((status) => {
+        if (status === 'SUBSCRIBED') console.log("¡Conectado exitosamente a la nube en tiempo real!");
+    });
+
+  // B) DETECTAR CUANDO EL USUARIO PRESIONA LOS BOTONES REALES DE TU WEB
+  document.addEventListener("DOMContentLoaded", () => {
+
+      // 1. Buscar el botón "Guardar Registro" por su texto exacto
+      const botones = document.querySelectorAll("button");
+      
+      botones.forEach(boton => {
+          // Si el botón dice "Guardar Registro" (Calculadora de facturas)
+          if (boton.innerText.includes("Guardar Registro")) {
+              boton.addEventListener("click", () => {
+                  // Enviamos la señal a la nube
+                  canalContable.send({
+                      type: 'broadcast',
+                      event: 'actualizar-pantalla',
+                      payload: { accion: "Guardar Factura / Cotización" }
+                  });
+              });
+          }
+
+          // Si el botón dice "Guardar Proveedor"
+          if (boton.innerText.includes("Guardar Proveedor")) {
+              boton.addEventListener("click", () => {
+                  // Enviamos la señal a la nube
+                  canalContable.send({
+                      type: 'broadcast',
+                      event: 'actualizar-pantalla',
+                      payload: { accion: "Agregar Nuevo Proveedor" }
+                  });
+              });
+          }
+      });
+  });
 </script>
 
 </body>
