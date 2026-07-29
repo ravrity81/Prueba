@@ -1918,72 +1918,81 @@
             }
         }
     </script>
-</div> 
-
-<!-- CONECTOR DE SUPABASE -->
+<!-- CONECTOR OFICIAL DE SUPABASE -->
 <script src="https://jsdelivr.net"></script>
 
 <script>
-  // Conexión oficial usando tus llaves públicas
-  const SUPABASE_URL = "https://bimmfmpgbnzrtxjdciei.supabase.co";
+  // Conexión directa a tus tablas contables de la nube
+  const SUPABASE_URL = "https://supabase.co";
   const SUPABASE_KEY = "sb_publishable_wfwqA12Gzc1W1Gs2PYdSjg_agP2i_bY";
   const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Unirse a la sala de contabilidad en vivo
-  const canalContable = supabase.channel('modulo-cxp', {
-    config: { broadcast: { self: true } } // Permite recibir confirmación propia
-  });
-
-  // A) ESCUCHAR: Qué pasa en el Dispositivo B cuando el A guarda algo
-  canalContable
-    .on('broadcast', { event: 'actualizar-pantalla' }, (respuesta) => {
-        console.log("¡Señal en vivo recibida!", respuesta.payload);
-        
-        // 1. Mensaje de alerta en la pantalla receptora
-        alert(`🔔 Movimiento detectado: Se registró una acción de tipo [${respuesta.payload.accion}].`);
-
-        // 2. FORZAR ACTUALIZACIÓN: Si tu código tiene funciones para pintar las tablas,
-        // pon sus nombres aquí adentro para que se vuelvan a ejecutar solas.
+  // Escuchar la base de datos en tiempo real (Cualquier cambio refresca las pantallas)
+  supabase
+    .channel('cambios-contables')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'facturas' }, () => {
+        alert("🔔 ¡Historial de facturas actualizado en la nube!");
+        descargarDatosDeLaNube(); // Refresca las pantallas de todos los dispositivos conectados
     })
-    .subscribe((status) => {
-        if (status === 'SUBSCRIBED') console.log("¡Conectado exitosamente a la nube en tiempo real!");
-    });
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'proveedores' }, () => {
+        alert("🔔 ¡Directorio de proveedores actualizado en la nube!");
+        descargarDatosDeLaNube(); // Refresca las pantallas de todos los dispositivos conectados
+    })
+    .subscribe();
 
-  // B) DETECTAR CUANDO EL USUARIO PRESIONA LOS BOTONES REALES DE TU WEB
+  // 1. ESCUCHAR EL BOTÓN "GUARDAR REGISTRO" (Para Facturas / Cotizaciones)
   document.addEventListener("DOMContentLoaded", () => {
-
-      // 1. Buscar el botón "Guardar Registro" por su texto exacto
       const botones = document.querySelectorAll("button");
       
       botones.forEach(boton => {
-          // Si el botón dice "Guardar Registro" (Calculadora de facturas)
+          // Buscamos tus botones reales por el texto que tienen escrito en tu HTML
           if (boton.innerText.includes("Guardar Registro")) {
-              boton.addEventListener("click", () => {
-                  // Enviamos la señal a la nube
-                  canalContable.send({
-                      type: 'broadcast',
-                      event: 'actualizar-pantalla',
-                      payload: { accion: "Guardar Factura / Cotización" }
-                  });
+              boton.addEventListener("click", async () => {
+                  // Captura los datos de tus inputs (puedes ajustar las IDs si es necesario)
+                  const tipo = document.querySelector('input[type="radio"]:checked')?.value || "Factura (CxP)";
+                  const proveedor = document.querySelector('input[placeholder*="Proveedor"]')?.value || "Proveedor General";
+                  const monto = document.querySelector('input[placeholder*="Monto Base"]')?.value || "0";
+
+                  // Sube la información a internet para siempre
+                  await supabase.from('facturas').insert([{ 
+                      tipo: tipo, 
+                      proveedor: proveedor, 
+                      monto_base: parseFloat(monto) 
+                  }]);
               });
           }
 
-          // Si el botón dice "Guardar Proveedor"
+          // 2. ESCUCHAR EL BOTÓN "GUARDAR PROVEEDOR"
           if (boton.innerText.includes("Guardar Proveedor")) {
-              boton.addEventListener("click", () => {
-                  // Enviamos la señal a la nube
-                  canalContable.send({
-                      type: 'broadcast',
-                      event: 'actualizar-pantalla',
-                      payload: { accion: "Agregar Nuevo Proveedor" }
-                  });
+              boton.addEventListener("click", async () => {
+                  const nombre = document.querySelector('input[placeholder*="Razón Social"]')?.value || "Nuevo Proveedor";
+                  const rif = document.querySelector('input[placeholder*="RIF"]')?.value || "";
+
+                  // Sube el proveedor a internet para siempre
+                  await supabase.from('proveedores').insert([{ 
+                      nombre: nombre, 
+                      rif: rif 
+                  }]);
               });
           }
       });
   });
+
+  // 3. FUNCIÓN AUTOMÁTICA PARA BAJAR LOS DATOS DE INTERNET
+  async function descargarDatosDeLaNube() {
+      const { data: facturas } = await supabase.from('facturas').select('*');
+      const { data: proveedores } = await supabase.from('proveedores').select('*');
+
+      if (facturas) {
+          console.log("Datos de facturas en la nube listos para tus tablas:", facturas);
+          // Aquí puedes vincular las variables con las tablas visuales de tu HTML
+      }
+  }
+
+  // Ejecutar descarga inicial al abrir la página web
+  document.addEventListener("DOMContentLoaded", descargarDatosDeLaNube);
 </script>
 
 </body>
 </html>
-
 
